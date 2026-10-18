@@ -2,9 +2,9 @@
 
 ## Current authorization
 
-M1.1 and M1.2-A are accepted. The user explicitly authorized M1.2-B followed by M1.2-C on 2026-10-18. The B foundation reactor build and four HTTP startup tests passed before C began. Implement the Maven/four-application foundation first; proceed to Inventory only after its reactor build and four basic startup tests pass. Stop on a blocking foundation build issue. M1.2-D and later remain unauthorized.
+M1.1/A/B/C are accepted for progression; the user explicitly accepted C and authorized M1.2-D only. Implement Payment GET and Notification POST/GET with service-owned JDBC/Flyway persistence and PostgreSQL tests. Work on feature/m1.2-d-payment-notification. Leave changes uncommitted for review: the earlier main push authorization does not authorize new D commits. Do not implement E, M1.3 or later. Do not change contracts; report material contradictions before proceeding. Preserve unrelated work.
 
-Authorized paths include root Maven/wrapper/ignore files, the four service foundation modules, Inventory catalog API/persistence/migrations/tests, and directly related documentation. Preserve the wire contracts. No reservations, orchestration, shared implementation library, Compose, cloud services, or later mechanisms. Necessary dependency resolution and verification are authorized.
+Authorized paths: Payment/Notification modules and directly related documentation. Inventory, Checkout and infrastructure remain regression baselines. Necessary local dependency resolution, Testcontainers and verification are permitted. No cloud, Compose, charge/refund execution, outbox, scheduler, messaging or cross-service calls. D must not be marked accepted before user review.
 
 ## Working method
 
@@ -59,4 +59,4 @@ Use OpenAPI 3.1 JSON under `contracts/` without a shared Java implementation lib
 
 Keep M1.2 persistence minimal: catalog, purchase query representation, payment query representation, and notification receipt only. No reservation state machines, refund/recovery tables, reconciliation workers, or orchestration. Future schema needs must be documented separately. Automated database tests use Testcontainers; full provisioning and Compose remain M1.4.
 
-Checkpoint order: A design/contracts; B Maven/Spring foundation; C Inventory; D Payment/Notification; E Checkout; F verification/documentation. Obtain explicit approval before each next checkpoint. Current authorization permits B foundation work and C Inventory work in sequence, with build verification before C. No D or later work.
+Checkpoint order: A design/contracts; B Maven/Spring foundation; C Inventory; D Payment/Notification; E Checkout; F verification/documentation. Obtain explicit approval before each next checkpoint. Current authorization permits M1.2-D only. E and later require separate explicit approval.
