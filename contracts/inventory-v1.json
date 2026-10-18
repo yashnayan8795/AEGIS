@@ -1,0 +1,1763 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Aegis Inventory API",
+    "version": "0.1.0",
+    "description": "M1.2-A design contract only. No endpoint is implemented. M1.2 operations are scheduled for later authorized checkpoints. M1.3 operations are reserved and must not be registered as M1.2 stub handlers. All data is synthetic; no authentication platform is introduced. Local trusted development only."
+  },
+  "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+  "servers": [
+    {
+      "url": "/",
+      "description": "Relative service origin; no running server implied."
+    }
+  ],
+  "tags": [
+    {
+      "name": "M1.2",
+      "description": "Approved M1.2 endpoint scope; not implemented."
+    },
+    {
+      "name": "M1.3",
+      "description": "Reserved future workflow contract; implementation prohibited in M1.2."
+    }
+  ],
+  "paths": {
+    "/api/v1/items/{sku}": {
+      "get": {
+        "operationId": "getCatalogItem",
+        "summary": "Get catalog item and stock snapshot",
+        "description": "",
+        "x-aegis-milestone": "M1.2",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authoritative catalog price and point-in-time available quantity.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItem"
+                },
+                "example": {
+                  "sku": "AEGIS_ITEM",
+                  "unitPriceMinor": 100,
+                  "currency": "INR",
+                  "availableQuantity": 10,
+                  "observedAt": "2026-10-17T00:00:00Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/items/AEGIS_ITEM",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ITEM_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "code": {
+                          "enum": [
+                            "ITEM_NOT_FOUND"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "ITEM_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/items/AEGIS_ITEM",
+                      "code": "ITEM_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/items/AEGIS_ITEM",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/items/AEGIS_ITEM",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sku",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Z0-9][A-Z0-9_-]{0,63}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/reservations/{reservationId}": {
+      "put": {
+        "operationId": "reserveInventory",
+        "summary": "Reserve stock (reserved contract)",
+        "description": "M1.3 only. Resolve the stable identity first: identical purchaseId/sku/quantity returns the existing reservation, including terminal state and original price/deadline, without reallocation or renewed TTL. Conflicting payload or another reservation ID for that purchase returns a distinct 409 code. For a new reservation, obtain authoritative catalog price, perform checked positive int64 multiplication, then atomically allocate stock and persist the result. Overflow returns 400 MONETARY_OVERFLOW with no stock/reservation side effect. Unknown SKU is 404. No caller amount, expiry, or remote database access.",
+        "x-aegis-milestone": "M1.3",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.3"
+        ],
+        "responses": {
+          "201": {
+            "description": "New reservation created atomically with stock allocation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                },
+                "example": {
+                  "reservationId": "11111111-1111-4111-8111-111111111111",
+                  "purchaseId": "22222222-2222-4222-8222-222222222222",
+                  "sku": "AEGIS_ITEM",
+                  "quantity": 2,
+                  "unitPriceMinor": 100,
+                  "totalAmountMinor": 200,
+                  "currency": "INR",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "expiresAt": "2026-10-17T00:01:00Z",
+                  "state": "ACTIVE"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "description": "Relative URI of this resource.",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Matching identity and immutable payload; return existing state without allocating again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                },
+                "example": {
+                  "reservationId": "11111111-1111-4111-8111-111111111111",
+                  "purchaseId": "22222222-2222-4222-8222-222222222222",
+                  "sku": "AEGIS_ITEM",
+                  "quantity": 2,
+                  "unitPriceMinor": 100,
+                  "totalAmountMinor": 200,
+                  "currency": "INR",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "expiresAt": "2026-10-17T00:01:00Z",
+                  "state": "ACTIVE"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields. MONETARY_OVERFLOW: Catalog unitPriceMinor * quantity exceeds positive signed int64; no mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST",
+                            "MONETARY_OVERFLOW"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "MONETARY_OVERFLOW": {
+                    "summary": "Catalog unitPriceMinor * quantity exceeds positive signed int64; no mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Catalog unitPriceMinor * quantity exceeds positive signed int64; no mutation.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "MONETARY_OVERFLOW"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ITEM_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "code": {
+                          "enum": [
+                            "ITEM_NOT_FOUND"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "ITEM_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "ITEM_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RESERVATION_ID_REUSED: Same reservationId, conflicting request. PURCHASE_RESERVATION_EXISTS: Purchase already owns another reservation identity. INSUFFICIENT_STOCK: Not enough stock; no allocation performed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 409
+                        },
+                        "code": {
+                          "enum": [
+                            "RESERVATION_ID_REUSED",
+                            "PURCHASE_RESERVATION_EXISTS",
+                            "INSUFFICIENT_STOCK"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "RESERVATION_ID_REUSED": {
+                    "summary": "Same reservationId, conflicting request.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Same reservationId, conflicting request.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "RESERVATION_ID_REUSED"
+                    }
+                  },
+                  "PURCHASE_RESERVATION_EXISTS": {
+                    "summary": "Purchase already owns another reservation identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Purchase already owns another reservation identity.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "PURCHASE_RESERVATION_EXISTS"
+                    }
+                  },
+                  "INSUFFICIENT_STOCK": {
+                    "summary": "Not enough stock; no allocation performed.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Not enough stock; no allocation performed.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "INSUFFICIENT_STOCK"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE: Request media type must be application/json.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 415
+                        },
+                        "code": {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "UNSUPPORTED_MEDIA_TYPE": {
+                    "summary": "Request media type must be application/json.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Unsupported Media Type",
+                      "status": 415,
+                      "detail": "Request media type must be application/json.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "UNSUPPORTED_MEDIA_TYPE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getReservation",
+        "summary": "Get reservation (reserved contract)",
+        "description": "",
+        "x-aegis-milestone": "M1.3",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.3"
+        ],
+        "responses": {
+          "200": {
+            "description": "Established reservation state; unknown identity is 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                },
+                "example": {
+                  "reservationId": "11111111-1111-4111-8111-111111111111",
+                  "purchaseId": "22222222-2222-4222-8222-222222222222",
+                  "sku": "AEGIS_ITEM",
+                  "quantity": 2,
+                  "unitPriceMinor": 100,
+                  "totalAmountMinor": 200,
+                  "currency": "INR",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "expiresAt": "2026-10-17T00:01:00Z",
+                  "state": "ACTIVE"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "RESERVATION_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "code": {
+                          "enum": [
+                            "RESERVATION_NOT_FOUND"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "RESERVATION_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "RESERVATION_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/reservations/{reservationId}/commit": {
+      "put": {
+        "operationId": "commitReservation",
+        "summary": "Commit reservation (reserved contract)",
+        "description": "M1.3 only. COMMITTED replay is 200 even after expiresAt and never moves stock again. RELEASED returns 409 RESERVATION_RELEASED. EXPIRED or ACTIVE at/after authoritative expiresAt returns 409 RESERVATION_EXPIRED and cannot commit. ACTIVE can transition only at a serialized decision point with fresh database time strictly before expiresAt, after any contention wait. At exact equality expiry wins; terminal states never change. Detailed locking/expiry materialization is deferred.",
+        "x-aegis-milestone": "M1.3",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.3"
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching terminal result, including repeated command.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                },
+                "example": {
+                  "reservationId": "11111111-1111-4111-8111-111111111111",
+                  "purchaseId": "22222222-2222-4222-8222-222222222222",
+                  "sku": "AEGIS_ITEM",
+                  "quantity": 2,
+                  "unitPriceMinor": 100,
+                  "totalAmountMinor": 200,
+                  "currency": "INR",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "expiresAt": "2026-10-17T00:01:00Z",
+                  "state": "COMMITTED"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/commit",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "RESERVATION_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "code": {
+                          "enum": [
+                            "RESERVATION_NOT_FOUND"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "RESERVATION_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/commit",
+                      "code": "RESERVATION_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/commit",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/commit",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RESERVATION_EXPIRED: Deadline reached or EXPIRED; commit forbidden. RESERVATION_RELEASED: Already RELEASED; commit forbidden.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 409
+                        },
+                        "code": {
+                          "enum": [
+                            "RESERVATION_EXPIRED",
+                            "RESERVATION_RELEASED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "RESERVATION_EXPIRED": {
+                    "summary": "Deadline reached or EXPIRED; commit forbidden.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Deadline reached or EXPIRED; commit forbidden.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/commit",
+                      "code": "RESERVATION_EXPIRED"
+                    }
+                  },
+                  "RESERVATION_RELEASED": {
+                    "summary": "Already RELEASED; commit forbidden.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Already RELEASED; commit forbidden.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/commit",
+                      "code": "RESERVATION_RELEASED"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/reservations/{reservationId}/release": {
+      "put": {
+        "operationId": "releaseReservation",
+        "summary": "Release reservation (reserved contract)",
+        "description": "M1.3 only. Release ACTIVE before expiry to RELEASED once; at/after expiry return EXPIRED after establishing cleanup. Existing RELEASED or EXPIRED replays return 200 unchanged; COMMITTED returns 409 RESERVATION_COMMITTED. Never move stock twice or change terminal state. Detailed atomic transition algorithm is M1.3.",
+        "x-aegis-milestone": "M1.3",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.3"
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching terminal result, including repeated command.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                },
+                "example": {
+                  "reservationId": "11111111-1111-4111-8111-111111111111",
+                  "purchaseId": "22222222-2222-4222-8222-222222222222",
+                  "sku": "AEGIS_ITEM",
+                  "quantity": 2,
+                  "unitPriceMinor": 100,
+                  "totalAmountMinor": 200,
+                  "currency": "INR",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "expiresAt": "2026-10-17T00:01:00Z",
+                  "state": "RELEASED"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/release",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "RESERVATION_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "code": {
+                          "enum": [
+                            "RESERVATION_NOT_FOUND"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "RESERVATION_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/release",
+                      "code": "RESERVATION_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/release",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/release",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RESERVATION_COMMITTED: Already COMMITTED; release forbidden.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 409
+                        },
+                        "code": {
+                          "enum": [
+                            "RESERVATION_COMMITTED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "RESERVATION_COMMITTED": {
+                    "summary": "Already COMMITTED; release forbidden.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Already COMMITTED; release forbidden.",
+                      "instance": "/api/v1/reservations/11111111-1111-4111-8111-111111111111/release",
+                      "code": "RESERVATION_COMMITTED"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "enum": [
+              "INSUFFICIENT_STOCK",
+              "INTERNAL_ERROR",
+              "INVALID_REQUEST",
+              "ITEM_NOT_FOUND",
+              "MONETARY_OVERFLOW",
+              "PURCHASE_RESERVATION_EXISTS",
+              "RESERVATION_COMMITTED",
+              "RESERVATION_EXPIRED",
+              "RESERVATION_ID_REUSED",
+              "RESERVATION_NOT_FOUND",
+              "RESERVATION_RELEASED",
+              "SERVICE_UNAVAILABLE",
+              "UNSUPPORTED_MEDIA_TYPE"
+            ]
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field",
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "instance",
+          "code"
+        ],
+        "description": "RFC 9457-style response. HTTP status and status member must agree. code and violations are Aegis extensions. Never expose SQL, credentials, or stack traces. Consumers must tolerate unknown extension fields."
+      },
+      "CatalogItem": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]{0,63}$"
+          },
+          "unitPriceMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "description": "Positive signed 64-bit integer minor units when present; range 1..9223372036854775807. No float, wraparound, saturation, rounding, or negative/zero amount. Nullable fields allow null only as explicitly constrained by the containing schema."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "INR"
+            ]
+          },
+          "availableQuantity": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sku",
+          "unitPriceMinor",
+          "currency",
+          "availableQuantity",
+          "observedAt"
+        ],
+        "additionalProperties": false,
+        "description": "Inventory is catalog and price authority. Availability is a snapshot, never a stock allocation guarantee.",
+        "examples": [
+          {
+            "sku": "AEGIS_ITEM",
+            "unitPriceMinor": 100,
+            "currency": "INR",
+            "availableQuantity": 10,
+            "observedAt": "2026-10-17T00:00:00Z"
+          }
+        ]
+      },
+      "ReservationRequest": {
+        "type": "object",
+        "properties": {
+          "purchaseId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "sku": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]{0,63}$"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "purchaseId",
+          "sku",
+          "quantity"
+        ],
+        "additionalProperties": false,
+        "description": "positive quantity within int32. Inventory computes total using checked int64 multiplication of authoritative unitPriceMinor and quantity, before allocation. Nonpositive/out-of-range input is 400 INVALID_REQUEST; product overflow is 400 MONETARY_OVERFLOW with no mutation. Existing identical reservation replays return original snapshot instead of recomputing using catalog changes.",
+        "examples": [
+          {
+            "purchaseId": "22222222-2222-4222-8222-222222222222",
+            "sku": "AEGIS_ITEM",
+            "quantity": 2
+          }
+        ]
+      },
+      "Reservation": {
+        "type": "object",
+        "properties": {
+          "reservationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "purchaseId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "sku": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]{0,63}$"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "unitPriceMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "description": "Positive signed 64-bit integer minor units when present; range 1..9223372036854775807. No float, wraparound, saturation, rounding, or negative/zero amount. Nullable fields allow null only as explicitly constrained by the containing schema."
+          },
+          "totalAmountMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "description": "Positive signed 64-bit integer minor units when present; range 1..9223372036854775807. No float, wraparound, saturation, rounding, or negative/zero amount. Nullable fields allow null only as explicitly constrained by the containing schema."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "INR"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMMITTED",
+              "RELEASED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC database-authoritative deadline, immutable for the reservation; no renewal endpoint. expiresAt > createdAt. New commit at or after this instant is forbidden."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "reservationId",
+          "purchaseId",
+          "sku",
+          "quantity",
+          "unitPriceMinor",
+          "totalAmountMinor",
+          "currency",
+          "state",
+          "expiresAt",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "description": "M1.3 only. Exactly one terminal state: COMMITTED, RELEASED, EXPIRED; terminal states never change. totalAmountMinor equals the checked positive int64 product of quantity and unitPriceMinor. Inventory chooses and persists expiresAt from database time. ACTIVE is a persisted nonterminal state, not a guarantee of current eligibility: if expiry processing lags, GET may return ACTIVE with a past deadline. New commit must evaluate fresh authoritative database time at its serialized decision point after any contention wait: eligible iff state is ACTIVE and decisionTime < expiresAt. Equality is expired. Never use a stale transaction-start timestamp for this decision. A committed transition before the deadline remains valid even if acknowledgement arrives afterward. Algorithms/SQL and deadline duration remain M1.3 design.",
+        "x-aegis-semantic-invariants": [
+          "COMMITTED replay remains 200 after the deadline; no second stock movement.",
+          "GET does not itself promise expiry cleanup has run. Expiry/release reclaim stock exactly once under concurrency.",
+          "An uncommitted expired reservation cannot later commit even if an expiry worker has not persisted EXPIRED."
+        ],
+        "examples": [
+          {
+            "reservationId": "11111111-1111-4111-8111-111111111111",
+            "purchaseId": "22222222-2222-4222-8222-222222222222",
+            "sku": "AEGIS_ITEM",
+            "quantity": 2,
+            "unitPriceMinor": 100,
+            "totalAmountMinor": 200,
+            "currency": "INR",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "expiresAt": "2026-10-17T00:01:00Z",
+            "state": "ACTIVE"
+          },
+          {
+            "reservationId": "11111111-1111-4111-8111-111111111111",
+            "purchaseId": "22222222-2222-4222-8222-222222222222",
+            "sku": "AEGIS_ITEM",
+            "quantity": 2,
+            "unitPriceMinor": 100,
+            "totalAmountMinor": 200,
+            "currency": "INR",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "expiresAt": "2026-10-17T00:01:00Z",
+            "state": "COMMITTED"
+          },
+          {
+            "reservationId": "11111111-1111-4111-8111-111111111111",
+            "purchaseId": "22222222-2222-4222-8222-222222222222",
+            "sku": "AEGIS_ITEM",
+            "quantity": 2,
+            "unitPriceMinor": 100,
+            "totalAmountMinor": 200,
+            "currency": "INR",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "expiresAt": "2026-10-17T00:01:00Z",
+            "state": "RELEASED"
+          },
+          {
+            "reservationId": "11111111-1111-4111-8111-111111111111",
+            "purchaseId": "22222222-2222-4222-8222-222222222222",
+            "sku": "AEGIS_ITEM",
+            "quantity": 2,
+            "unitPriceMinor": 100,
+            "totalAmountMinor": 200,
+            "currency": "INR",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "expiresAt": "2026-10-17T00:01:00Z",
+            "state": "EXPIRED"
+          }
+        ]
+      }
+    }
+  },
+  "x-aegis-error-codes": {
+    "INVALID_REQUEST": {
+      "status": 400,
+      "meaning": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields."
+    },
+    "ITEM_NOT_FOUND": {
+      "status": 404,
+      "meaning": "Resource does not exist; absence does not fence a delayed mutation."
+    },
+    "INTERNAL_ERROR": {
+      "status": 500,
+      "meaning": "Unexpected internal failure."
+    },
+    "SERVICE_UNAVAILABLE": {
+      "status": 503,
+      "meaning": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity."
+    },
+    "MONETARY_OVERFLOW": {
+      "status": 400,
+      "meaning": "Catalog unitPriceMinor * quantity exceeds positive signed int64; no mutation."
+    },
+    "RESERVATION_ID_REUSED": {
+      "status": 409,
+      "meaning": "Same reservationId, conflicting request."
+    },
+    "PURCHASE_RESERVATION_EXISTS": {
+      "status": 409,
+      "meaning": "Purchase already owns another reservation identity."
+    },
+    "INSUFFICIENT_STOCK": {
+      "status": 409,
+      "meaning": "Not enough stock; no allocation performed."
+    },
+    "UNSUPPORTED_MEDIA_TYPE": {
+      "status": 415,
+      "meaning": "Request media type must be application/json."
+    },
+    "RESERVATION_NOT_FOUND": {
+      "status": 404,
+      "meaning": "Resource does not exist; absence does not fence a delayed mutation."
+    },
+    "RESERVATION_EXPIRED": {
+      "status": 409,
+      "meaning": "Deadline reached or EXPIRED; commit forbidden."
+    },
+    "RESERVATION_RELEASED": {
+      "status": 409,
+      "meaning": "Already RELEASED; commit forbidden."
+    },
+    "RESERVATION_COMMITTED": {
+      "status": 409,
+      "meaning": "Already COMMITTED; release forbidden."
+    }
+  }
+}

@@ -1,0 +1,1616 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Aegis Payment Simulator API",
+    "version": "0.1.0",
+    "description": "M1.2-A design contract only. No endpoint is implemented. M1.2 operations are scheduled for later authorized checkpoints. M1.3 operations are reserved and must not be registered as M1.2 stub handlers. All data is synthetic; no authentication platform is introduced. Local trusted development only."
+  },
+  "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+  "servers": [
+    {
+      "url": "/",
+      "description": "Relative service origin; no running server implied."
+    }
+  ],
+  "tags": [
+    {
+      "name": "M1.2",
+      "description": "Approved M1.2 endpoint scope; not implemented."
+    },
+    {
+      "name": "M1.3",
+      "description": "Reserved future workflow contract; implementation prohibited in M1.2."
+    }
+  ],
+  "paths": {
+    "/api/v1/payments/{paymentId}": {
+      "get": {
+        "operationId": "getPayment",
+        "summary": "Query synthetic payment",
+        "description": "",
+        "x-aegis-milestone": "M1.2",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing payment; M1.2 tests supply fixtures. Production database may be empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                },
+                "example": {
+                  "paymentId": "22222222-2222-4222-8222-222222222222",
+                  "purchaseId": "11111111-1111-4111-8111-111111111111",
+                  "reservationId": "33333333-3333-4333-8333-333333333333",
+                  "amountMinor": 200,
+                  "currency": "INR",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "updatedAt": "2026-10-17T00:00:01Z",
+                  "state": "PENDING",
+                  "declineCode": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PAYMENT_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "code": {
+                          "enum": [
+                            "PAYMENT_NOT_FOUND"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "PAYMENT_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "PAYMENT_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "createPayment",
+        "summary": "Submit synthetic charge (reserved contract)",
+        "description": "Stable paymentId identifies one charge. Same identity/different payload or another charge ID for the purchase returns 409. There is no Inventory HTTP/DB lookup and no payment provider. 404 lookup cannot fence a delayed charge. Unknown outcomes must be reconciled using the same ID.",
+        "x-aegis-milestone": "M1.3",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.3"
+        ],
+        "responses": {
+          "201": {
+            "description": "New durable payment identity. A business decline is represented in state, not an HTTP server failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                },
+                "example": {
+                  "paymentId": "22222222-2222-4222-8222-222222222222",
+                  "purchaseId": "11111111-1111-4111-8111-111111111111",
+                  "reservationId": "33333333-3333-4333-8333-333333333333",
+                  "amountMinor": 200,
+                  "currency": "INR",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "updatedAt": "2026-10-17T00:00:01Z",
+                  "state": "PENDING",
+                  "declineCode": null
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "description": "Relative URI of this resource.",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Matching immutable request replay; no second charge.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                },
+                "example": {
+                  "paymentId": "22222222-2222-4222-8222-222222222222",
+                  "purchaseId": "11111111-1111-4111-8111-111111111111",
+                  "reservationId": "33333333-3333-4333-8333-333333333333",
+                  "amountMinor": 200,
+                  "currency": "INR",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "updatedAt": "2026-10-17T00:00:01Z",
+                  "state": "PENDING",
+                  "declineCode": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PAYMENT_ID_REUSED: Same paymentId, conflicting immutable payload. PURCHASE_PAYMENT_EXISTS: Purchase already owns another charge identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 409
+                        },
+                        "code": {
+                          "enum": [
+                            "PAYMENT_ID_REUSED",
+                            "PURCHASE_PAYMENT_EXISTS"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "PAYMENT_ID_REUSED": {
+                    "summary": "Same paymentId, conflicting immutable payload.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Same paymentId, conflicting immutable payload.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "PAYMENT_ID_REUSED"
+                    }
+                  },
+                  "PURCHASE_PAYMENT_EXISTS": {
+                    "summary": "Purchase already owns another charge identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Purchase already owns another charge identity.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "PURCHASE_PAYMENT_EXISTS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE: Request media type must be application/json.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 415
+                        },
+                        "code": {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "UNSUPPORTED_MEDIA_TYPE": {
+                    "summary": "Request media type must be application/json.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Unsupported Media Type",
+                      "status": 415,
+                      "detail": "Request media type must be application/json.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "UNSUPPORTED_MEDIA_TYPE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/{paymentId}/refunds/{refundId}": {
+      "put": {
+        "operationId": "refundPayment",
+        "summary": "Submit full refund (reserved contract)",
+        "description": "M1.3 only. PENDING: refund result remains unresolved or retryable processing has not completed; retries use the same refundId. SUCCEEDED: full refund definitively committed. FAILED: definitive terminal no-refund result for this identity, with no delayed execution able to succeed; never use FAILED for timeout, unavailable storage, or a retryable processing exception. Terminal outcomes are immutable. Identical PUT replays return the original resource and do not restart FAILED refunds. FAILED leaves Checkout compensation pending / requiring attention; no new refund identity may be invented to evade uniqueness. Manual remediation policy is deferred to M1.3. One full refund per successful charge; amounts/currency must match. Request validation rejects non-INR currency with 400 INVALID_REQUEST; valid INR but mismatched full amount returns 409 REFUND_AMOUNT_MISMATCH.",
+        "x-aegis-milestone": "M1.3",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.3"
+        ],
+        "responses": {
+          "201": {
+            "description": "New refund identity persisted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                },
+                "example": {
+                  "refundId": "44444444-4444-4444-8444-444444444444",
+                  "paymentId": "22222222-2222-4222-8222-222222222222",
+                  "amountMinor": 200,
+                  "currency": "INR",
+                  "state": "PENDING",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "updatedAt": "2026-10-17T00:00:01Z"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "description": "Relative URI of this resource.",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Matching refund replay without another refund.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                },
+                "example": {
+                  "refundId": "44444444-4444-4444-8444-444444444444",
+                  "paymentId": "22222222-2222-4222-8222-222222222222",
+                  "amountMinor": 200,
+                  "currency": "INR",
+                  "state": "PENDING",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "updatedAt": "2026-10-17T00:00:01Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PAYMENT_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "code": {
+                          "enum": [
+                            "PAYMENT_NOT_FOUND"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "PAYMENT_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "PAYMENT_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REFUND_ID_REUSED: Same refundId, conflicting payload. PAYMENT_REFUND_EXISTS: Another refund identity already belongs to this payment. PAYMENT_NOT_SUCCEEDED: Charge has not definitively succeeded. REFUND_AMOUNT_MISMATCH: Requested amount differs from full original charge.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 409
+                        },
+                        "code": {
+                          "enum": [
+                            "REFUND_ID_REUSED",
+                            "PAYMENT_REFUND_EXISTS",
+                            "PAYMENT_NOT_SUCCEEDED",
+                            "REFUND_AMOUNT_MISMATCH"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "REFUND_ID_REUSED": {
+                    "summary": "Same refundId, conflicting payload.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Same refundId, conflicting payload.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "REFUND_ID_REUSED"
+                    }
+                  },
+                  "PAYMENT_REFUND_EXISTS": {
+                    "summary": "Another refund identity already belongs to this payment.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Another refund identity already belongs to this payment.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "PAYMENT_REFUND_EXISTS"
+                    }
+                  },
+                  "PAYMENT_NOT_SUCCEEDED": {
+                    "summary": "Charge has not definitively succeeded.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Charge has not definitively succeeded.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "PAYMENT_NOT_SUCCEEDED"
+                    }
+                  },
+                  "REFUND_AMOUNT_MISMATCH": {
+                    "summary": "Requested amount differs from full original charge.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Conflict",
+                      "status": 409,
+                      "detail": "Requested amount differs from full original charge.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "REFUND_AMOUNT_MISMATCH"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE: Request media type must be application/json.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 415
+                        },
+                        "code": {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "UNSUPPORTED_MEDIA_TYPE": {
+                    "summary": "Request media type must be application/json.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Unsupported Media Type",
+                      "status": 415,
+                      "detail": "Request media type must be application/json.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "UNSUPPORTED_MEDIA_TYPE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "refundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getRefund",
+        "summary": "Query refund (reserved contract)",
+        "description": "",
+        "x-aegis-milestone": "M1.3",
+        "x-aegis-implementation-status": "not-implemented",
+        "tags": [
+          "M1.3"
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing refund belonging to this payment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                },
+                "example": {
+                  "refundId": "44444444-4444-4444-8444-444444444444",
+                  "paymentId": "22222222-2222-4222-8222-222222222222",
+                  "amountMinor": 200,
+                  "currency": "INR",
+                  "state": "PENDING",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "updatedAt": "2026-10-17T00:00:01Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "code": {
+                          "enum": [
+                            "INVALID_REQUEST"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "summary": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Bad Request",
+                      "status": 400,
+                      "detail": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PAYMENT_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation. REFUND_NOT_FOUND: Resource does not exist; absence does not fence a delayed mutation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "code": {
+                          "enum": [
+                            "PAYMENT_NOT_FOUND",
+                            "REFUND_NOT_FOUND"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "PAYMENT_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "PAYMENT_NOT_FOUND"
+                    }
+                  },
+                  "REFUND_NOT_FOUND": {
+                    "summary": "Resource does not exist; absence does not fence a delayed mutation.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Not Found",
+                      "status": 404,
+                      "detail": "Resource does not exist; absence does not fence a delayed mutation.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "REFUND_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR: Unexpected internal failure.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "code": {
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "summary": "Unexpected internal failure.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Internal Server Error",
+                      "status": 500,
+                      "detail": "Unexpected internal failure.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "INTERNAL_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE: Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "code": {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "code"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "summary": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                    "value": {
+                      "type": "about:blank",
+                      "title": "Service Unavailable",
+                      "status": 503,
+                      "detail": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity.",
+                      "instance": "/api/v1/payments/11111111-1111-4111-8111-111111111111/refunds/11111111-1111-4111-8111-111111111111",
+                      "code": "SERVICE_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "refundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "enum": [
+              "INTERNAL_ERROR",
+              "INVALID_REQUEST",
+              "PAYMENT_ID_REUSED",
+              "PAYMENT_NOT_FOUND",
+              "PAYMENT_NOT_SUCCEEDED",
+              "PAYMENT_REFUND_EXISTS",
+              "PURCHASE_PAYMENT_EXISTS",
+              "REFUND_AMOUNT_MISMATCH",
+              "REFUND_ID_REUSED",
+              "REFUND_NOT_FOUND",
+              "SERVICE_UNAVAILABLE",
+              "UNSUPPORTED_MEDIA_TYPE"
+            ]
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field",
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "instance",
+          "code"
+        ],
+        "description": "RFC 9457-style response. HTTP status and status member must agree. code and violations are Aegis extensions. Never expose SQL, credentials, or stack traces. Consumers must tolerate unknown extension fields."
+      },
+      "PaymentRequest": {
+        "type": "object",
+        "properties": {
+          "purchaseId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "reservationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "description": "Positive signed 64-bit integer minor units when present; range 1..9223372036854775807. No float, wraparound, saturation, rounding, or negative/zero amount. Nullable fields allow null only as explicitly constrained by the containing schema."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "INR"
+            ]
+          }
+        },
+        "required": [
+          "purchaseId",
+          "reservationId",
+          "amountMinor",
+          "currency"
+        ],
+        "additionalProperties": false
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "purchaseId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "reservationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "description": "Positive signed 64-bit integer minor units when present; range 1..9223372036854775807. No float, wraparound, saturation, rounding, or negative/zero amount. Nullable fields allow null only as explicitly constrained by the containing schema."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "INR"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SUCCEEDED",
+              "DECLINED"
+            ]
+          },
+          "declineCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "SIMULATED_DECLINE",
+              null
+            ],
+            "description": "SIMULATED_DECLINE iff state is DECLINED; otherwise null. Not a transport/processing error code."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC; must be greater than or equal to createdAt. Cross-field time ordering is a runtime invariant."
+          }
+        },
+        "required": [
+          "paymentId",
+          "purchaseId",
+          "reservationId",
+          "amountMinor",
+          "currency",
+          "state",
+          "declineCode",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "M1.2 query fixtures only. PENDING: durable charge identity exists but no definitive charge outcome is established; transient execution/storage failures and uncertainty do not imply decline. SUCCEEDED and DECLINED are definitive terminal outcomes and never transition to each other or back to PENDING. DECLINED guarantees this identity cannot later charge. Caller timeout is knowledge uncertainty, not a Payment state. One charge per purchase; original amount/currency remain immutable. No Inventory DB access.",
+        "oneOf": [
+          {
+            "properties": {
+              "state": {
+                "const": "DECLINED"
+              },
+              "declineCode": {
+                "const": "SIMULATED_DECLINE"
+              }
+            }
+          },
+          {
+            "properties": {
+              "state": {
+                "enum": [
+                  "PENDING",
+                  "SUCCEEDED"
+                ]
+              },
+              "declineCode": {
+                "type": "null"
+              }
+            }
+          }
+        ],
+        "examples": [
+          {
+            "paymentId": "22222222-2222-4222-8222-222222222222",
+            "purchaseId": "11111111-1111-4111-8111-111111111111",
+            "reservationId": "33333333-3333-4333-8333-333333333333",
+            "amountMinor": 200,
+            "currency": "INR",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "updatedAt": "2026-10-17T00:00:01Z",
+            "state": "PENDING",
+            "declineCode": null
+          },
+          {
+            "paymentId": "22222222-2222-4222-8222-222222222222",
+            "purchaseId": "11111111-1111-4111-8111-111111111111",
+            "reservationId": "33333333-3333-4333-8333-333333333333",
+            "amountMinor": 200,
+            "currency": "INR",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "updatedAt": "2026-10-17T00:00:01Z",
+            "state": "SUCCEEDED",
+            "declineCode": null
+          },
+          {
+            "paymentId": "22222222-2222-4222-8222-222222222222",
+            "purchaseId": "11111111-1111-4111-8111-111111111111",
+            "reservationId": "33333333-3333-4333-8333-333333333333",
+            "amountMinor": 200,
+            "currency": "INR",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "updatedAt": "2026-10-17T00:00:01Z",
+            "state": "DECLINED",
+            "declineCode": "SIMULATED_DECLINE"
+          }
+        ]
+      },
+      "RefundRequest": {
+        "type": "object",
+        "properties": {
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "description": "Positive signed 64-bit integer minor units when present; range 1..9223372036854775807. No float, wraparound, saturation, rounding, or negative/zero amount. Nullable fields allow null only as explicitly constrained by the containing schema."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "INR"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "enum": [
+              "RESERVATION_EXPIRED"
+            ]
+          }
+        },
+        "required": [
+          "amountMinor",
+          "currency",
+          "reasonCode"
+        ],
+        "additionalProperties": false
+      },
+      "Refund": {
+        "type": "object",
+        "properties": {
+          "refundId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "description": "Positive signed 64-bit integer minor units when present; range 1..9223372036854775807. No float, wraparound, saturation, rounding, or negative/zero amount. Nullable fields allow null only as explicitly constrained by the containing schema."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "INR"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC; must be greater than or equal to createdAt. Cross-field time ordering is a runtime invariant."
+          }
+        },
+        "required": [
+          "refundId",
+          "paymentId",
+          "amountMinor",
+          "currency",
+          "state",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "M1.3 only. PENDING: refund result remains unresolved or retryable processing has not completed; retries use the same refundId. SUCCEEDED: full refund definitively committed. FAILED: definitive terminal no-refund result for this identity, with no delayed execution able to succeed; never use FAILED for timeout, unavailable storage, or a retryable processing exception. Terminal outcomes are immutable. Identical PUT replays return the original resource and do not restart FAILED refunds. FAILED leaves Checkout compensation pending / requiring attention; no new refund identity may be invented to evade uniqueness. Manual remediation policy is deferred to M1.3. One full refund per successful charge; amounts/currency must match.",
+        "examples": [
+          {
+            "refundId": "44444444-4444-4444-8444-444444444444",
+            "paymentId": "22222222-2222-4222-8222-222222222222",
+            "amountMinor": 200,
+            "currency": "INR",
+            "state": "PENDING",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "updatedAt": "2026-10-17T00:00:01Z"
+          },
+          {
+            "refundId": "44444444-4444-4444-8444-444444444444",
+            "paymentId": "22222222-2222-4222-8222-222222222222",
+            "amountMinor": 200,
+            "currency": "INR",
+            "state": "SUCCEEDED",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "updatedAt": "2026-10-17T00:00:01Z"
+          },
+          {
+            "refundId": "44444444-4444-4444-8444-444444444444",
+            "paymentId": "22222222-2222-4222-8222-222222222222",
+            "amountMinor": 200,
+            "currency": "INR",
+            "state": "FAILED",
+            "createdAt": "2026-10-17T00:00:00Z",
+            "updatedAt": "2026-10-17T00:00:01Z"
+          }
+        ]
+      }
+    }
+  },
+  "x-aegis-error-codes": {
+    "INVALID_REQUEST": {
+      "status": 400,
+      "meaning": "Malformed, missing, unsupported currency, nonpositive/out-of-range amount/quantity, or unexpected fields."
+    },
+    "PAYMENT_NOT_FOUND": {
+      "status": 404,
+      "meaning": "Resource does not exist; absence does not fence a delayed mutation."
+    },
+    "INTERNAL_ERROR": {
+      "status": 500,
+      "meaning": "Unexpected internal failure."
+    },
+    "SERVICE_UNAVAILABLE": {
+      "status": 503,
+      "meaning": "Storage/dependency unavailable. A mutation outcome may be unknown; resolve with its original identity."
+    },
+    "PAYMENT_ID_REUSED": {
+      "status": 409,
+      "meaning": "Same paymentId, conflicting immutable payload."
+    },
+    "PURCHASE_PAYMENT_EXISTS": {
+      "status": 409,
+      "meaning": "Purchase already owns another charge identity."
+    },
+    "UNSUPPORTED_MEDIA_TYPE": {
+      "status": 415,
+      "meaning": "Request media type must be application/json."
+    },
+    "REFUND_ID_REUSED": {
+      "status": 409,
+      "meaning": "Same refundId, conflicting payload."
+    },
+    "PAYMENT_REFUND_EXISTS": {
+      "status": 409,
+      "meaning": "Another refund identity already belongs to this payment."
+    },
+    "PAYMENT_NOT_SUCCEEDED": {
+      "status": 409,
+      "meaning": "Charge has not definitively succeeded."
+    },
+    "REFUND_AMOUNT_MISMATCH": {
+      "status": 409,
+      "meaning": "Requested amount differs from full original charge."
+    },
+    "REFUND_NOT_FOUND": {
+      "status": 404,
+      "meaning": "Resource does not exist; absence does not fence a delayed mutation."
+    }
+  }
+}
