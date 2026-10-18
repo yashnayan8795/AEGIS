@@ -1,8 +1,8 @@
 # Aegis architecture decisions
 
-Current status (2026-10-18): M1.1/A accepted; B foundation verified before C; Inventory C verification passed, awaiting user review. D and later remain unauthorized. Earlier sections record historical review states; D-012 records current implementation evidence.
+Current status (2026-10-18): C explicitly accepted by the user; D Payment/Notification implemented and verified, awaiting user acceptance. E and later remain unauthorized. Earlier sections are historical; D-013 is the current implementation record.
 
-**Approved** means accepted design baseline, not implemented capability. **Proposed** means a recommendation awaiting review. **Deferred** means intentionally unresolved until a relevant authorized milestone. Current explicit user authorization permits M1.2-B foundation and then M1.2-C Inventory implementation, subject to successful foundation verification. M1.2-D/later remain unauthorized. Earlier documentation-only restrictions below are historical; D-012 supersedes them for B/C.
+**Approved** means accepted design baseline, not implemented capability. **Proposed** means a recommendation awaiting review. **Deferred** means intentionally unresolved until a relevant authorized milestone. Current explicit user authorization permits M1.2-D Payment/Notification only after accepted C and baseline verification. E/later remain unauthorized. Earlier restrictions are historical. No D commit or push is authorized by the repository instructions; leave the dedicated branch ready for review.
 
 ## D-001 — Research testbed and scope
 
@@ -199,3 +199,102 @@ services/payment-simulator/src/test/java/io/aegis/payment/PaymentApplicationTest
 ```
 
 Modified existing documentation: README.md, AGENTS.md, docs/PROJECT_SPEC.md, docs/ARCHITECTURE.md, docs/ROADMAP.md, docs/DECISIONS.md. No contract files were changed.
+
+
+## D-013 - M1.2-D Payment queries and durable Notification receipts
+
+**Status: implemented and verified; awaiting user acceptance.** The user explicitly accepted C and authorized D only. Initial working tree on main was clean; the existing full reactor baseline passed 34 tests before implementation. Created feature/m1.2-d-payment-notification. No source changes to Inventory/Checkout, parent POM, wrapper or contracts; no merge, commit, force-push or push was performed. The previous commit/push authorization concerned the prior main snapshot, not new D work.
+
+### Accepted scope and schemas
+
+Payment implements GET /api/v1/payments/{paymentId} only, using strict UUID lexical validation and service-local JDBC. Required null declineCode remains present. PENDING means no definitive outcome; DECLINED is definitive with SIMULATED_DECLINE. Missing record and unavailable storage never become a decline or invented success. V1 creates payment with UUID PK, unique purchase UUID, reservation UUID value, positive bigint amount, INR, three valid states, explicit decline consistency, and ordered timestamps. No outcome rows are inserted by migrations or application startup; test records live in src/test/resources/fixtures/payments.sql and are reset before each integration case. No refund schema or charge executor exists.
+
+Notification implements POST /api/v1/notifications and GET /api/v1/notifications/{notificationId}. V1 creates notification_receipt with UUID PK, purchase UUID, fixed kind/state and database-generated creation timestamp. STORED means only synthetic local receipt. Input is strict JSON with three required string fields, UUID validation and enum validation. No outbox, delivery worker or messaging API exists.
+
+Both modules follow constructor-injected controller/application/domain/JDBC boundaries. They inherit existing managed dependencies and add only Inventory-established JDBC/Flyway/PostgreSQL/Testcontainers/MVC test artifacts. No shared implementation module, JPA, cloud or new infrastructure framework is introduced. Defaults identify distinct service databases; DB_URL/DB_USER/DB_PASSWORD and MIGRATION_USER/MIGRATION_PASSWORD are environment-driven per process. Read-only Payment runtime role and append/read-only Notification runtime role remain separate from migration owner credentials. Notification INSERT grants should cover request columns only; UPDATE/DELETE/DDL and cross-database connection privileges are denied.
+
+### Concurrency decision and learning notes
+
+A primary key, rather than JVM locks or an in-memory map, coordinates identities across application instances and restarts. Notification uses a short Spring READ COMMITTED transaction. INSERT ON CONFLICT DO NOTHING RETURNING either supplies a new row or waits for a competing identity to resolve. A separate SELECT then gets a fresh committed snapshot to compare the winning purchase UUID/kind. This avoids the SELECT-before-INSERT race and the single-statement insert/select snapshot gap. No raw unique exception is caught and followed by queries in an aborted transaction. Mismatches roll back without updating the accepted receipt. Spring's transaction proxy commits before the controller emits 201/200. Commit/storage failure can have an unknown outcome and is not reported as success. Retrying the same identity resolves ambiguity; a timeout does not prove rollback.
+
+Normal PostgreSQL durability settings are assumed; these tests verify commit visibility and application restart retention, not power-loss resilience. Runtime permissions and no deletion route make receipts immutable to the protocol; privileged administrative changes are outside it. Official semantics: [PostgreSQL READ COMMITTED](https://www.postgresql.org/docs/17/transaction-iso.html), [INSERT/ON CONFLICT](https://www.postgresql.org/docs/17/sql-insert.html).
+
+Payment stays read-only because executing charges before M1.3 would introduce workflow/idempotency/uncertain-side-effect behavior prematurely. Its migration validates stored read models only. Flyway scripts and credentials remain service-owned, with no cross-service foreign keys or SQL. Testcontainers exercises actual PostgreSQL uniqueness, isolation, rollback and role checks; mocks are used only for unit/API error translation, never concurrency acceptance.
+
+### Executed verification (2026-10-18)
+
+All commands ran from D:\agies with MAVEN_USER_HOME=D:\agies\.m2. Logs remain under ignored logs/. The sandbox process helper initially failed to initialize; execution outside it allowed repository review/builds and Docker access. No application/test blocker was found.
+
+| Command | Actual result |
+|---|---|
+| `.\mvnw.cmd '-Dmaven.repo.local=D:/agies/.m2' -B verify` before changes | PASS, 34 baseline tests; logs/m1.2-d-baseline.log |
+| `.\mvnw.cmd '-Dmaven.repo.local=D:/agies/.m2' -B -pl services/payment-simulator,services/notification-service -am '-DskipTests' compile` | PASS, compilation only; not a test run; logs/m1.2-d-compile.log |
+| `.\mvnw.cmd '-Dmaven.repo.local=D:/agies/.m2' -B -pl services/payment-simulator,services/notification-service -am test` | PASS, initial 71 service tests before two additional outage tests; logs/m1.2-d-services.log |
+| `.\mvnw.cmd '-Dmaven.repo.local=D:/agies/.m2' -B verify` after all source/test changes | PASS, 105 tests, zero failures/errors/skips; logs/m1.2-d-reactor.log |
+
+Final report counts from Surefire XML:
+
+| Service | Tests | Coverage |
+|---|---:|---|
+| Checkout | 1 | Unchanged independent HTTP startup regression |
+| Inventory | 31 | Unchanged unit/MVC/PostgreSQL/Flyway/role regressions |
+| Payment | 34 | 8 unit, 6 MVC, 19 PostgreSQL/application, 1 real outage |
+| Notification | 39 | 8 unit, 16 MVC, 14 PostgreSQL/multi-instance/restart, 1 real outage |
+
+Payment tests cover exact response fields read from the contract, required nulls, all stored states, amount/currency including Long.MAX_VALUE, unknown/invalid IDs, constraints (including NULL decline rejection), identity uniqueness, migrations and restricted roles. Separate isolated database-loss test verifies real 503 behavior. Test data is disposable and reset for independent repeatability.
+
+Notification uses two separately started Spring application contexts, HTTP servers and pools sharing real PostgreSQL. Eight-client start gates verify one 201 plus seven 200 identical replays, or one 201 plus seven 409 conflicting replays. A held uncommitted insertion and observed PostgreSQL lock wait verify both commit (200 replay) and rollback (201 new) outcomes without guessed sleeps. Separate connections verify one committed winner before success consumption; matching replays retain the exact original receipt/createdAt after conflict. Closing/recreating one application context preserves receipt and replay behavior. Restricted roles cannot mutate/delete or connect to a sibling database. Isolated database loss produces 503 for GET and POST; a mocked commit error also cannot yield 201/200.
+
+Final packaging inspection passed for all four executable Boot JARs: correct Start-Class and Java 21 bytecode (major 65). Each new service includes exactly one V1 migration; payment fixtures are not packaged in production. Source route checks and MVC tests verify no charge/refund/reserved mutation handlers. Response-field tests read authoritative OpenAPI required fields; statuses, nullable decline values, enums, errors and JSON validation are asserted. Full OpenAPI validator remains unavailable, so this is not a certification of full schema conformance. All contracts remain byte-for-byte unchanged in Git.
+
+Documentation links/fences, exact six-phase/25-milestone roadmap, scope and whitespace checks passed. Existing Inventory/Checkout source and parent build configuration are unchanged. Working tree intentionally has uncommitted D code/docs on the feature branch, ready for review. No tests failed or were skipped in the executed D runs.
+
+### Limitations and acceptance gate
+
+No blocking issue remains. Docker and first-run image/dependency access are required. Existing non-failing Mockito dynamic-agent warnings and Jackson convenience-method deprecation warnings remain visible; versions are not overridden to hide them. Manual database/role provisioning is still required outside tests, with UTC JVM launch for the known host timezone alias issue. Tests use independent application contexts in one JVM; they do not claim independent OS-process crash or deployment recovery evidence. Full deployment/reproducibility remains M1.4.
+
+D is ready for user acceptance review, not accepted automatically. E Checkout queries, M1.3 charge/refund execution, workflows/reconciliation, retries, actual notification delivery, and all later mechanisms remain deferred and unauthorized.
+
+### D changed-file inventory
+
+```text
+AGENTS.md
+README.md
+docs/ARCHITECTURE.md
+docs/DECISIONS.md
+docs/PROJECT_SPEC.md
+docs/ROADMAP.md
+services/notification-service/pom.xml
+services/notification-service/src/main/java/io/aegis/notification/api/ApiErrors.java
+services/notification-service/src/main/java/io/aegis/notification/api/NotificationController.java
+services/notification-service/src/main/java/io/aegis/notification/api/NotificationRequest.java
+services/notification-service/src/main/java/io/aegis/notification/application/InvalidRequestException.java
+services/notification-service/src/main/java/io/aegis/notification/application/NotificationConflictException.java
+services/notification-service/src/main/java/io/aegis/notification/application/NotificationNotFoundException.java
+services/notification-service/src/main/java/io/aegis/notification/application/NotificationService.java
+services/notification-service/src/main/java/io/aegis/notification/application/RequestIds.java
+services/notification-service/src/main/java/io/aegis/notification/domain/NotificationReceipt.java
+services/notification-service/src/main/java/io/aegis/notification/infrastructure/persistence/NotificationRepository.java
+services/notification-service/src/main/resources/application.properties
+services/notification-service/src/main/resources/db/migration/V1__create_notification_receipt.sql
+services/notification-service/src/test/java/io/aegis/notification/NotificationApplicationTest.java
+services/notification-service/src/test/java/io/aegis/notification/StorageUnavailableTest.java
+services/notification-service/src/test/java/io/aegis/notification/api/NotificationControllerTest.java
+services/notification-service/src/test/java/io/aegis/notification/application/NotificationServiceTest.java
+services/payment-simulator/pom.xml
+services/payment-simulator/src/main/java/io/aegis/payment/api/ApiErrors.java
+services/payment-simulator/src/main/java/io/aegis/payment/api/PaymentController.java
+services/payment-simulator/src/main/java/io/aegis/payment/application/InvalidRequestException.java
+services/payment-simulator/src/main/java/io/aegis/payment/application/PaymentNotFoundException.java
+services/payment-simulator/src/main/java/io/aegis/payment/application/PaymentService.java
+services/payment-simulator/src/main/java/io/aegis/payment/application/RequestIds.java
+services/payment-simulator/src/main/java/io/aegis/payment/domain/Payment.java
+services/payment-simulator/src/main/java/io/aegis/payment/infrastructure/persistence/PaymentRepository.java
+services/payment-simulator/src/main/resources/application.properties
+services/payment-simulator/src/main/resources/db/migration/V1__create_payment.sql
+services/payment-simulator/src/test/java/io/aegis/payment/PaymentApplicationTest.java
+services/payment-simulator/src/test/java/io/aegis/payment/StorageUnavailableTest.java
+services/payment-simulator/src/test/java/io/aegis/payment/api/PaymentControllerTest.java
+services/payment-simulator/src/test/java/io/aegis/payment/application/PaymentServiceTest.java
+services/payment-simulator/src/test/resources/fixtures/payments.sql
+```

@@ -1,6 +1,6 @@
 # Aegis architecture
 
-Status: M1.1/A accepted. B foundation verified and C Inventory implementation verified, pending user review after explicit user authorization. The diagrams describe eventual workflow; only foundation and catalog read scope exist. See README/DECISIONS for evidence.
+Status: C accepted; D Payment/Notification implemented and verified, pending user acceptance. Only the foundation, Inventory read, Payment read and Notification receipt scope exists. The purchase/control-plane diagrams still describe future workflow. See README/DECISIONS for evidence.
 
 ## 1. Boundaries and ownership
 
@@ -180,7 +180,7 @@ Deferred: deadline/retry budgets, exact persistence/transition algorithms, manua
 
 OpenAPI 3.1.0 JSON documents: [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), [Notification](../contracts/notification-v1.json). Each operation identifies its milestone; not-implemented metadata is the unchanged contract-review snapshot, not a current deployment inventory. JSON is an OpenAPI serialization; no YAML parser or Java code generator is required for preparation. There is no shared implementation module.
 
-| Service | Future M1.2 endpoints | Reserved M1.3 endpoints |
+| Service | M1.2 endpoint scope | Reserved M1.3 endpoints |
 |---|---|---|
 | Checkout | GET `/api/v1/purchases/{purchaseId}` | POST `/api/v1/purchases` |
 | Inventory | GET `/api/v1/items/{sku}` | PUT/GET `/api/v1/reservations/{reservationId}`; PUT commit/release subresources |
@@ -280,3 +280,35 @@ The catalog endpoint follows controller -> CatalogService -> CatalogRepository -
 V1 creates only catalog_item with primary-key/format SKU checks, positive bigint price, explicit INR, and nonnegative bigint available_quantity. Store availability directly in this read-only milestone: no reservation/accounting fields exist from which to derive it. M1.3 will evolve accounting and introduce atomic guarded allocation and conservation tests; a stock read alone cannot prevent overselling. Do not mistake CHECK (available_quantity >= 0) for an allocation protocol.
 
 Flyway is the sole initialization mechanism. Schema migration is always enabled; the explicit local profile adds a separate repeatable fixture with insert-if-absent semantics. No other service schema or production outcome data is touched. Runtime credentials can be SELECT-only; migrations use a separate owner. PostgreSQL tests exercise constraints and role restrictions with real connections. Spring JDBC keeps SQL/transaction behavior explicit without Hibernate's mapping/context lifecycle; no generic repository framework is introduced.
+
+
+## 14. M1.2-D Payment and Notification implementation
+
+Payment's controller delegates strict UUID validation and lookup to its application service and JDBC repository. Its immutable read model includes all nine contract fields, including an explicit null declineCode for PENDING/SUCCEEDED. DECLINED requires SIMULATED_DECLINE. A missing row is PAYMENT_NOT_FOUND, not a decline; storage failure is a sanitized SERVICE_UNAVAILABLE. There are no charge/refund handlers or other-service lookups.
+
+Payment's V1 table has UUID payment identity, unique purchase identity, reservation UUID value (no cross-service FK), positive bigint amount, INR, valid state, decline consistency, and ordered non-null timestamps. The decline CHECK explicitly excludes NULL in DECLINED: PostgreSQL CHECK accepting UNKNOWN must not permit a missing definitive decline reason. The runtime role can only SELECT; isolated test resources supply all sample outcomes. Migration creates no payment data or refunds.
+
+Notification's V1 table has UUID notification_id primary key, purchase UUID value, PURCHASE_CONFIRMED kind, STORED state, and database-generated timestamptz created_at. Runtime grants permit SELECT and INSERT of the three request fields only; no UPDATE/DELETE or audit-field insertion. No outbox, delivery system, retention cleanup or worker exists.
+
+### Notification transaction boundary
+
+NotificationService.store is a Spring-proxied READ COMMITTED transaction. The repository executes:
+
+```sql
+INSERT INTO notification_receipt (notification_id, purchase_id, kind)
+VALUES (:id, :purchase, :kind)
+ON CONFLICT (notification_id) DO NOTHING
+RETURNING notification_id, purchase_id, kind, state, created_at;
+```
+
+If inserted, return the row with created=true; otherwise issue a separate SELECT by identity and compare parsed purchaseId/kind. Matching payload returns the existing row with created=false; mismatch throws the conflict and rolls back, without modifying the winner. The controller receives a result only after transaction commit, then returns 201 plus relative Location or 200. Commit/storage errors return sanitized failure with potentially unknown outcome, never fabricated success. Runtime immutability permissions and no deletion API keep the committed winner stable; privileged administrative mutation is outside this protocol's assumptions.
+
+PostgreSQL uniqueness coordinates all instances. A conflict can become visible to ON CONFLICT before it is visible in that statement's snapshot; the following READ COMMITTED statement sees the now-committed winner. A single insert/select CTE could miss it, and a SELECT-before-INSERT check would race. Do not catch a raw uniqueness error and keep using an aborted transaction. Official references: [READ COMMITTED semantics](https://www.postgresql.org/docs/17/transaction-iso.html), [INSERT/ON CONFLICT](https://www.postgresql.org/docs/17/sql-insert.html).
+
+Strict JSON parsing rejects missing/null/non-string/unknown fields before semantic UUID/kind validation. UUID comparison is value-based, accepting case differences while rejecting shortened UUID syntax. Whitespace/property order do not change payload meaning. Stable errors are INVALID_REQUEST, NOTIFICATION_NOT_FOUND and NOTIFICATION_ID_REUSED, with RFC-style status/code/detail/instance responses. STORED remains synthetic local receipt state, not delivery or purchase authority.
+
+### Verification boundary
+
+Two independent application contexts, HTTP servers and pools share a Testcontainers PostgreSQL database. Start gates exercise eight concurrent identical requests (one 201, seven 200) and eight conflicting requests (one 201, seven 409). A database-held uncommitted insert plus observed lock wait deterministically verifies winner commit and rollback cases without guessed sleeps. Separate connections inspect committed rows and original timestamp. Restart closes/recreates an application context and verifies persistence/replay. Dedicated disposable-database outages test read failures and notification transaction-start failures without introducing production fault injection. Unit mocks cover response translation, never concurrency acceptance.
+
+These are service-level tests in one JVM, not a multi-process crash/deployment experiment. Runtime role grants prohibit cross-database connections and receipt mutation; migration credentials remain separate. Existing Inventory/Checkout and all contract files are unchanged. State transitions, charge/refund execution, orchestration/reconciliation, actual notification delivery and full Compose remain deferred. D is verified, not yet accepted by the user.
