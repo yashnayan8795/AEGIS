@@ -1,8 +1,8 @@
 # Aegis architecture decisions
 
-Current status (2026-10-18): C explicitly accepted by the user; D Payment/Notification implemented and verified, awaiting user acceptance. E and later remain unauthorized. Earlier sections are historical; D-013 is the current implementation record.
+Current status (2026-10-20): checkpoints through D accepted for progression; integrated local main at 1435181 contains D. E Checkout implemented and verified, awaiting user acceptance. F and later remain unauthorized. Earlier verification sections are historical; D-014 is the current record.
 
-**Approved** means accepted design baseline, not implemented capability. **Proposed** means a recommendation awaiting review. **Deferred** means intentionally unresolved until a relevant authorized milestone. Current explicit user authorization permits M1.2-D Payment/Notification only after accepted C and baseline verification. E/later remain unauthorized. Earlier restrictions are historical. No D commit or push is authorized by the repository instructions; leave the dedicated branch ready for review.
+**Approved** means accepted design baseline, not implemented capability. **Proposed** means a recommendation awaiting review. **Deferred** means intentionally unresolved until an authorized milestone. Current explicit authorization permits M1.2-E only. Leave E changes uncommitted on feature/m1.2-e-checkout; no commit, push or merge is authorized. Earlier restrictions and working-tree descriptions are historical.
 
 ## D-001 — Research testbed and scope
 
@@ -203,7 +203,7 @@ Modified existing documentation: README.md, AGENTS.md, docs/PROJECT_SPEC.md, doc
 
 ## D-013 - M1.2-D Payment queries and durable Notification receipts
 
-**Status: implemented and verified; awaiting user acceptance.** The user explicitly accepted C and authorized D only. Initial working tree on main was clean; the existing full reactor baseline passed 34 tests before implementation. Created feature/m1.2-d-payment-notification. No source changes to Inventory/Checkout, parent POM, wrapper or contracts; no merge, commit, force-push or push was performed. The previous commit/push authorization concerned the prior main snapshot, not new D work.
+**Status: accepted for progression by subsequent E authorization.** The following is the historical D implementation report. The user explicitly accepted C and authorized D only at that time. Initial working tree on main was clean; the existing full reactor baseline passed 34 tests before implementation. Created feature/m1.2-d-payment-notification. No source changes to Inventory/Checkout, parent POM, wrapper or contracts; no merge, commit, force-push or push was performed. The previous commit/push authorization concerned the prior main snapshot, not new D work.
 
 ### Accepted scope and schemas
 
@@ -297,4 +297,85 @@ services/payment-simulator/src/test/java/io/aegis/payment/StorageUnavailableTest
 services/payment-simulator/src/test/java/io/aegis/payment/api/PaymentControllerTest.java
 services/payment-simulator/src/test/java/io/aegis/payment/application/PaymentServiceTest.java
 services/payment-simulator/src/test/resources/fixtures/payments.sql
+```
+
+## D-014 - M1.2-E Checkout purchase query implementation
+
+**Status: implemented and verified; awaiting explicit user acceptance.** Previous checkpoints through D were accepted for progression by the user's E authorization. Clean local main at 1435181 contained the accepted D implementation. Created feature/m1.2-e-checkout from that local main only after successful baseline verification. E changes remain uncommitted; no merge, commit, push or history rewrite was performed. F, M1.3 and later are not authorized.
+
+### Design and learning decisions
+
+Checkout now implements GET /api/v1/purchases/{purchaseId} only. Controller -> PurchaseService -> PurchaseRepository -> Checkout PostgreSQL is the complete request path. Strict lexical UUID validation accepts canonical case variants and rejects shortened UUID syntax before SQL. The service returns stored state; missing data returns PURCHASE_NOT_FOUND, never an inferred failed workflow. RFC 9457-style errors distinguish 400 INVALID_REQUEST, 404 PURCHASE_NOT_FOUND, 503 SERVICE_UNAVAILABLE (resource failure/query timeout), and sanitized 500 INTERNAL_ERROR (including SQL programming errors). All eleven properties are returned, with explicit nullable Long amountMinor and nullable currency.
+
+Checkout owns purchase snapshots because future orchestration needs one durable authority for progress. Inventory remains price authority. Amount/currency stay absent together before reservation establishes a price; zero is not an unknown sentinel. Spring JDBC exposes the single parameterized SELECT directly without JPA mapping/context machinery. No transaction or remote call is necessary for this one-statement read. There are no mutation methods, HTTP clients, workers, compensation handlers or submission routes.
+
+V1 creates one purchase table with UUID primary key (the only index), SKU format/length, positive int32 quantity, paired null or positive bigint/INR price, non-null state/step/knowledge/compensation flags, and finite ordered timestamptz values. The ten OpenAPI state/step branches allow sixteen complete flag/price shapes. Explicit IS NULL/IS NOT NULL conditions prevent CHECK/UNKNOWN from admitting partially missing prices. Known payment requires price; CONFIRMED requires known payment and no pending compensation; FAILED requires SETTLED and no pending compensation. The full contract matrix constrains the other combinations.
+
+These CHECK constraints protect static representations from every writer. They cannot prove actual charge success, inventory commitment, settled remote effects, or legal historical transitions. Test-only snapshots are hypothetical, not evidence of executed workflows. Those facts must be established by separately authorized M1.3 algorithms before such state can be written by the application. Future migrations can add durable operation identities, obligation records, transition guards and recovery metadata while retaining purchase identity. E adds no speculative fields/tables.
+
+Flyway owns only Checkout's versioned migration/history. No production seeds exist. Separate environment-driven migration owner and runtime credentials follow existing service configuration. Runtime needs CONNECT, schema USAGE and SELECT on purchase only; no mutation, DDL, migration-history read or cross-database access. Tests provision exact grants externally; the packaged-JAR smoke uses a non-superuser migration role owning its disposable database and a separate reader. Manual development provisioning remains required; Compose belongs to M1.4. No dependency versions, shared libraries or infrastructure were changed; Checkout adds only the JDBC/Flyway/PostgreSQL and MVC/Testcontainers test artifacts already established in the other services.
+
+### Executed verification (2026-10-20 through 2026-10-21)
+
+PowerShell commands ran from D:\agies with MAVEN_USER_HOME=D:\agies\.m2. Logs are ignored local artifacts. Docker Desktop 4.67.0 / Linux Engine 29.3.1 and real PostgreSQL 17.11 were available after prerequisite recovery.
+
+| Exact command | Actual result |
+|---|---|
+| `docker version` | PASS; Client and Linux Server available |
+| `.\mvnw.cmd '-Dmaven.repo.local=D:/agies/.m2' -B verify` before E changes | PASS: 105 tests, 0 failures/errors/skips; logs/m1.2-e-baseline-retry.log |
+| `.\mvnw.cmd '-Dmaven.repo.local=D:/agies/.m2' -B -pl services/checkout-service -am test` first run | FAIL: 60 tests, 2 failures, 0 errors/skips. Tests exposed copied paymentId route parameter naming and incorrect matrix cardinality expectation; corrected both |
+| Same targeted command after corrections | PASS: 62 tests, 0 failures/errors/skips; logs/m1.2-e-checkout.log |
+| `.\mvnw.cmd '-Dmaven.repo.local=D:/agies/.m2' -B verify` after final code/fixture changes | PASS: 166 tests, 0 failures/errors/skips; logs/m1.2-e-reactor.log |
+| `.\mvnw.cmd '-Dmaven.repo.local=D:/agies/.m2' -B -pl services/checkout-service -am '-DskipTests' package` | PASS: independent executable JAR packaging; tests intentionally not rerun by this packaging command; logs/m1.2-e-package.log |
+| `java -Duser.timezone=UTC -jar D:\agies\services\checkout-service\target\checkout-service-0.1.0-SNAPSHOT.jar --server.port=0 --logging.level.root=INFO --spring.main.banner-mode=off` | PASS: actual packaged process with environment-driven reader/migrator credentials and disposable local PostgreSQL; GET unknown returned 404 PURCHASE_NOT_FOUND; purchase count 0, Flyway V1 success; logs/m1.2-e-jar-stdout.log and stderr.log |
+
+The original prerequisite attempt failed because Docker was unavailable; no application change preceded that stop. The first optional JAR smoke's provisioning raced the image's temporary Unix-socket initialization server. Corrected its readiness probe to `docker exec <verification-container> pg_isready -h 127.0.0.1 -U postgres`, then the complete smoke passed. Both disposable smoke containers and the one launched Java process were cleaned up; process environment values were restored. No persistent deployment or Compose files were created.
+
+An automatic permission review timed out while retrieving results; a permitted read-only retry succeeded. The full reactor log reports an unusually long 32:56 elapsed duration including an Inventory stage of 32:03 during that wall-clock interruption. All tests passed; this run is verification evidence, not a performance measurement, and no cause beyond observed environmental delay is asserted.
+
+| Service / group | Tests | Failures / errors / skips |
+|---|---:|---|
+| Checkout application-service unit | 8 | 0 / 0 / 0 |
+| Checkout MVC/API | 8 | 0 / 0 / 0 |
+| Checkout PostgreSQL/application/migrations/constraints/roles | 45 | 0 / 0 / 0 |
+| Checkout real database-loss | 1 | 0 / 0 / 0 |
+| Inventory unchanged regression | 31 | 0 / 0 / 0 |
+| Payment unchanged regression | 34 | 0 / 0 / 0 |
+| Notification unchanged regression | 39 | 0 / 0 / 0 |
+| **Full reactor** | **166** | **0 / 0 / 0** |
+
+The PostgreSQL matrix is one test containing 400 checks, not 400 separately counted tests: 16 valid combinations inserted and 384 invalid combinations rejected. It independently varies state, step, known flag, compensation flag, amount presence and currency presence against the actual contract's oneOf/allOf/if/then constraints. Every valid representation is exercised through HTTP with exact full-body/required-null/state/flag/timestamp equality and a before/after owner-side comparison proving GET left all stored fields unchanged. Fixtures include Long.MAX_VALUE (quantity 1), int32 quantity maximum before pricing, and a 64-character SKU. Invalid constraints include nulls, partial/negative/zero prices, quantity, SKU, invalid states, unordered/non-finite timestamps, uniqueness and range overflow. Separate tests cover UTC offset normalization, missing/invalid/case-varied identities, denied writes/DDL/history access/cross-database connections, and real storage disappearance returning sanitized 503. Mocked failures cover unexpected errors and query timeout classification only.
+
+Flyway migrate/validate, zero pending/one applied migration, an initially empty database, and no reseeding on repeat migrate passed. Actual Spring handler inspection finds exactly the purchase GET business route; API tests reject purchase POST (404 collection / 405 existing item route). Source inspection finds no remote clients, schedulers, transitions or transaction handlers. JAR inspection confirms correct Start-Class, Java 21 major version 65, exactly V1__create_purchase.sql and no test fixtures.
+
+Dedicated OpenAPI 3.1 validation was not executed: Python openapi_spec_validator and jsonschema are not installed. The test-only PurchaseContract helper checks the keywords used by the Purchase schema and response Problem shape, while explicit tests check statuses and error codes; it is not a general OpenAPI validator. Cross-service evidence and historical state semantics are not certifiable through JSON Schema. All approved contract files remain byte-for-byte unchanged.
+
+Final documentation audit checks exact six phase headings and 25 milestone lines against main, local Markdown links/fences, authorization/status terminology and whitespace. Contracts, parent/wrapper, Inventory, Payment and Notification source/configuration remain unchanged. Logs/caches/target outputs remain ignored. E is ready for user acceptance; no unresolved application blocker remains. Existing Mockito dynamic-agent and Jackson convenience-method deprecation warnings are non-failing; no versions were changed to hide them. Manual provisioning, UTC JVM portability, full-validator tooling and absence of actual workflows remain explicit limitations.
+
+### E changed-file inventory
+
+```text
+AGENTS.md
+README.md
+docs/ARCHITECTURE.md
+docs/DECISIONS.md
+docs/PROJECT_SPEC.md
+docs/ROADMAP.md
+services/checkout-service/pom.xml
+services/checkout-service/src/main/java/io/aegis/checkout/api/ApiErrors.java
+services/checkout-service/src/main/java/io/aegis/checkout/api/PurchaseController.java
+services/checkout-service/src/main/java/io/aegis/checkout/application/InvalidRequestException.java
+services/checkout-service/src/main/java/io/aegis/checkout/application/PurchaseNotFoundException.java
+services/checkout-service/src/main/java/io/aegis/checkout/application/PurchaseService.java
+services/checkout-service/src/main/java/io/aegis/checkout/application/RequestIds.java
+services/checkout-service/src/main/java/io/aegis/checkout/domain/Purchase.java
+services/checkout-service/src/main/java/io/aegis/checkout/infrastructure/persistence/PurchaseRepository.java
+services/checkout-service/src/main/resources/application.properties
+services/checkout-service/src/main/resources/db/migration/V1__create_purchase.sql
+services/checkout-service/src/test/java/io/aegis/checkout/CheckoutApplicationTest.java
+services/checkout-service/src/test/java/io/aegis/checkout/PurchaseContract.java
+services/checkout-service/src/test/java/io/aegis/checkout/StorageUnavailableTest.java
+services/checkout-service/src/test/java/io/aegis/checkout/api/PurchaseControllerTest.java
+services/checkout-service/src/test/java/io/aegis/checkout/application/PurchaseServiceTest.java
+services/checkout-service/src/test/resources/fixtures/purchases.json
 ```

@@ -2,9 +2,9 @@
 
 ## Current authorization
 
-M1.1/A/B/C are accepted for progression; the user explicitly accepted C and authorized M1.2-D only. Implement Payment GET and Notification POST/GET with service-owned JDBC/Flyway persistence and PostgreSQL tests. Work on feature/m1.2-d-payment-notification. Leave changes uncommitted for review: the earlier main push authorization does not authorize new D commits. Do not implement E, M1.3 or later. Do not change contracts; report material contradictions before proceeding. Preserve unrelated work.
+M1.1 and M1.2-A/B/C/D are accepted for progression. The user explicitly authorized M1.2-E Checkout only after baseline verification. Work on feature/m1.2-e-checkout from accepted local main. Implement only GET /api/v1/purchases/{purchaseId}, minimal service-owned JDBC/Flyway persistence, static snapshot constraints and service tests. Leave E changes uncommitted for review. Do not change contracts; report material contradictions. Preserve unrelated work.
 
-Authorized paths: Payment/Notification modules and directly related documentation. Inventory, Checkout and infrastructure remain regression baselines. Necessary local dependency resolution, Testcontainers and verification are permitted. No cloud, Compose, charge/refund execution, outbox, scheduler, messaging or cross-service calls. D must not be marked accepted before user review.
+Authorized paths: Checkout module and directly related documentation. Inventory, Payment, Notification and infrastructure remain regression baselines. Necessary local dependency resolution, Testcontainers and verification are permitted. No cloud, Compose, purchase POST, workflow transitions, remote calls, compensation/recovery workers or later checkpoint implementation. E must not be marked accepted before user review. M1.2-F and M1.3 require separate explicit authorization.
 
 ## Working method
 
@@ -59,4 +59,4 @@ Use OpenAPI 3.1 JSON under `contracts/` without a shared Java implementation lib
 
 Keep M1.2 persistence minimal: catalog, purchase query representation, payment query representation, and notification receipt only. No reservation state machines, refund/recovery tables, reconciliation workers, or orchestration. Future schema needs must be documented separately. Automated database tests use Testcontainers; full provisioning and Compose remain M1.4.
 
-Checkpoint order: A design/contracts; B Maven/Spring foundation; C Inventory; D Payment/Notification; E Checkout; F verification/documentation. Obtain explicit approval before each next checkpoint. Current authorization permits M1.2-D only. E and later require separate explicit approval.
+Checkpoint order: A design/contracts; B Maven/Spring foundation; C Inventory; D Payment/Notification; E Checkout; F verification/documentation. Obtain explicit approval before each next checkpoint. Current authorization permits M1.2-E only. F and later require separate explicit approval.

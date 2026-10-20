@@ -1,6 +1,6 @@
 # Aegis project specification
 
-Status: M1.1/A/B/C accepted for progression; user explicitly accepted C and authorized M1.2-D. D Payment/Notification implementation verified, pending acceptance. E and later remain unauthorized. README and DECISIONS distinguish actual capabilities from future requirements.
+Status: M1.1 and M1.2-A/B/C/D accepted for progression. E Checkout read model implemented and verified, awaiting user acceptance. F and later remain unauthorized. README and DECISIONS separate current capabilities from future requirements.
 
 ## 1. Problem and purpose
 
@@ -108,7 +108,7 @@ See [DECISIONS.md](DECISIONS.md) for status and [ROADMAP.md](ROADMAP.md) for aut
 
 ## 9. Accepted M1.2 execution scope
 
-The user accepted C and explicitly authorized D after successful B/C verification. D adds Payment queries and Notification receipt/replay only; E and later remain unauthorized. Contracts live in [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), and [Notification](../contracts/notification-v1.json). Contract labels describe the review snapshot; current implementation status is reported in README.
+The user accepted previous checkpoints through D and explicitly authorized E Checkout queries only. F and later remain unauthorized. Contracts live in [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), and [Notification](../contracts/notification-v1.json). Contract labels describe the review snapshot; current implementation status is reported in README.
 
 M1.2 acceptance requires four independently startable applications; Inventory catalog reads against PostgreSQL; Notification creation and idempotent replay under concurrent duplicates; Checkout/Payment query behavior using test fixtures; passing service-level tests and Flyway migrations; and no cross-service database access. Purchase submission, reservation commands, payment/refund execution, recovery, and compensation remain M1.3-reserved contracts. Do not populate production databases with fictional completed purchases/payments.
 
@@ -119,4 +119,8 @@ M1.2 schemas must not contain refund, recovery, reconciliation, or reservation-s
 
 ## 10. M1.2-D verified scope
 
-Payment GET reads only its database and preserves definitive versus pending state semantics. Notification POST/GET stores a synthetic receipt with PostgreSQL-enforced concurrent idempotency; neither STORED nor a receipt validates a purchase. Two service-owned V1 migrations add only payment and notification_receipt. There are no production payment outcome fixtures. Restricted roles, independent configuration, real PostgreSQL concurrency/outage tests and regression verification passed; see D-013 in DECISIONS. D remains pending user acceptance. No M1.2-E or M1.3 operation is implemented.
+Payment GET reads only its database and preserves definitive versus pending state semantics. Notification POST/GET stores a synthetic receipt with PostgreSQL-enforced concurrent idempotency; neither STORED nor a receipt validates a purchase. Two service-owned V1 migrations add only payment and notification_receipt. There are no production payment outcome fixtures. Restricted roles, independent configuration, real PostgreSQL concurrency/outage tests and regression verification passed; see D-013 in DECISIONS. D was subsequently accepted for E progression. M1.3 operations remain unimplemented.
+
+## 11. M1.2-E implementation scope
+
+Checkout now reads a durable service-local purchase representation through GET only. Its eleven fields preserve nullable authoritative amount/currency and the approved state/step/flag matrix. One V1 purchase table enforces static row invariants, including ordered finite timestamps. Runtime permissions are SELECT-only; migration ownership is separate. No production purchase fixtures, commands, state transitions, remote lookups, workers, idempotency tables or compensation/recovery machinery exist. Test-only snapshots exercise representations without asserting distributed evidence. E verification and acceptance gate are recorded in D-014; F and later need explicit authorization.
