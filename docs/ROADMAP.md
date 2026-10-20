@@ -1,6 +1,6 @@
 # Aegis roadmap
 
-Status: exact approved six-phase, 25-milestone roadmap retained. M1.1/A/B/C accepted for progression; C explicitly accepted by the user. D explicitly authorized, implemented and verified, awaiting acceptance. E and later remain unauthorized.
+Status: exact approved six-phase, 25-milestone roadmap retained. M1.1 and M1.2-A/B/C/D accepted for progression. E explicitly authorized, implemented and verified; awaiting user acceptance. F and later remain unauthorized.
 
 ## Approved roadmap
 
@@ -79,10 +79,10 @@ Research success does not require positive predictive gains. It requires valid c
 | M1.2-A | Four OpenAPI contracts; update six baseline docs and accepted decisions | Accepted for progression by subsequent B/C authorization |
 | M1.2-B | Parent reactor, wrapper, four independent Spring Boot foundations | Implemented; initial reactor/four startup tests passed |
 | M1.2-C | Inventory catalog persistence/read API and service tests | Accepted by user; reactor/PostgreSQL tests passed |
-| M1.2-D | Payment query persistence and Notification receipt/replay APIs with service tests | Implemented/verified; awaiting user acceptance |
-| M1.2-E | Checkout query persistence/API using test fixtures | Not authorized |
+| M1.2-D | Payment query persistence and Notification receipt/replay APIs with service tests | Accepted for progression by explicit E authorization |
+| M1.2-E | Checkout query persistence/API using test fixtures | Implemented/verified; awaiting user acceptance |
 | M1.2-F | Complete service-level verification, migration checks, accurate documentation | Not authorized |
 
 Eventual M1.2 acceptance: four independently startable services, Inventory lookup against PostgreSQL, Notification creation and concurrent-safe replay, Checkout/Payment query behavior using test fixtures, successful service-level tests/migrations, and no cross-service database access. No production completed-purchase/payment seed data. Automated PostgreSQL tests use Testcontainers; manual prerequisites are documented, while complete Compose provisioning remains M1.4.
 
-Historical A authorization did not permit implementation. Subsequent explicit B/C and then D authorizations permit those scopes only; they do not authorize E or later. Minimal M1.2 schemas exclude refund/recovery tables, reconciliation workers, and reservation state machines. Future M1.3 endpoints are contract-only reservations.
+Historical A authorization did not permit implementation. Subsequent B/C/D and then explicit E authorizations permit those checkpoints only; they do not authorize F or later. Minimal M1.2 schemas exclude refund/recovery tables, reconciliation workers, and reservation state machines. Future M1.3 endpoints are contract-only reservations.

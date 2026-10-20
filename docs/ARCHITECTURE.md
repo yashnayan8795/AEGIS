@@ -1,6 +1,6 @@
 # Aegis architecture
 
-Status: C accepted; D Payment/Notification implemented and verified, pending user acceptance. Only the foundation, Inventory read, Payment read and Notification receipt scope exists. The purchase/control-plane diagrams still describe future workflow. See README/DECISIONS for evidence.
+Status: checkpoints through D accepted for progression; E Checkout read model implemented and verified, awaiting user acceptance. Purchase/control-plane workflow diagrams describe future behavior. See README/DECISIONS for evidence.
 
 ## 1. Boundaries and ownership
 
@@ -311,4 +311,14 @@ Strict JSON parsing rejects missing/null/non-string/unknown fields before semant
 
 Two independent application contexts, HTTP servers and pools share a Testcontainers PostgreSQL database. Start gates exercise eight concurrent identical requests (one 201, seven 200) and eight conflicting requests (one 201, seven 409). A database-held uncommitted insert plus observed lock wait deterministically verifies winner commit and rollback cases without guessed sleeps. Separate connections inspect committed rows and original timestamp. Restart closes/recreates an application context and verifies persistence/replay. Dedicated disposable-database outages test read failures and notification transaction-start failures without introducing production fault injection. Unit mocks cover response translation, never concurrency acceptance.
 
-These are service-level tests in one JVM, not a multi-process crash/deployment experiment. Runtime role grants prohibit cross-database connections and receipt mutation; migration credentials remain separate. Existing Inventory/Checkout and all contract files are unchanged. State transitions, charge/refund execution, orchestration/reconciliation, actual notification delivery and full Compose remain deferred. D is verified, not yet accepted by the user.
+These are service-level tests in one JVM, not a multi-process crash/deployment experiment. Runtime role grants prohibit cross-database connections and receipt mutation; migration credentials remain separate. Existing Inventory/Checkout and all contract files are unchanged. State transitions, charge/refund execution, orchestration/reconciliation, actual notification delivery and full Compose remain deferred. D was subsequently accepted for E progression; the preceding description records D verification.
+
+## 15. M1.2-E Checkout query implementation
+
+Checkout owns purchase state so a status read has one durable local authority. The GET controller delegates strict UUID validation and lookup to PurchaseService and PurchaseRepository; the repository uses one parameterized SELECT against its own database. The immutable domain record has all eleven contract properties and explicitly includes null amount/currency. There are no writes, remote clients, workers, transitions or transaction boundaries across services.
+
+V1 creates purchase with UUID primary key, valid SKU, positive int32 quantity, nullable positive bigint amount paired with INR, non-null state/step/flags and finite ordered timestamptz values. The ten contract state/step branches allow sixteen complete flag/price shapes. CHECK constraints encode those branches and paymentOutcomeKnown implies established price; explicit IS NULL/IS NOT NULL guards prevent SQL UNKNOWN from admitting incomplete prices. Only the primary-key index exists. Migrations insert no rows. Read-only runtime access is separate from migration ownership.
+
+A valid CONFIRMED row shape cannot prove successful payment and committed stock. Likewise, settled FAILED needs authoritative evidence that no unresolved effects remain. Test snapshots are hypothetical serialization/constraint cases, not proof of those effects. Before Inventory establishes a reservation price, amount/currency must both remain null; zero is never an unknown sentinel. M1.3 must add evidence recording and guarded, atomic transitions before it can write these states. New versioned migrations can add stable remote identities, obligations and worker metadata without replacing the read identity or exposing another service's tables. No such fields or algorithms are implemented in E.
+
+Tests compare all 400 state/step/flag/independent price-presence combinations with the contract, exercise all sixteen valid snapshots through HTTP, and check database permissions, migration validation, invalid rows, UTC mapping, exact required fields and storage-loss errors. They preserve historical-state and cross-service-evidence verification for M1.3.
