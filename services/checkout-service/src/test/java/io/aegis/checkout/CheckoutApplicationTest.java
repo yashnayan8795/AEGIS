@@ -55,7 +55,7 @@ class CheckoutApplicationTest {
         try(var input=new ClassPathResource("fixtures/purchases.json").getInputStream()){return mapper.readTree(input);}
     }
     @BeforeEach void reset()throws Exception {
-        try(var c=owner();var s=c.createStatement()) {s.execute("TRUNCATE purchase");for(var value:fixtures())insert(c,value);}
+        try(var c=owner();var s=c.createStatement()) {s.execute("TRUNCATE purchase CASCADE");for(var value:fixtures())insert(c,value);}
     }
     // Hypothetical representation fixtures only: no actual inventory/payment evidence or workflow execution.
     void insert(Connection c,JsonNode value)throws SQLException {
@@ -163,11 +163,11 @@ class CheckoutApplicationTest {
         assertThat(body.get("updatedAt")).isEqualTo(body.get("createdAt"));
     }
     @Test void migrationsValidateAndDoNotReinsertFixtures()throws SQLException {
-        try(var c=owner();var s=c.createStatement()){s.execute("TRUNCATE purchase");}
-        flyway.migrate();flyway.validate();assertThat(flyway.info().pending()).isEmpty();assertThat(flyway.info().applied()).hasSize(1);
+        try(var c=owner();var s=c.createStatement()){s.execute("TRUNCATE purchase CASCADE");}
+        flyway.migrate();flyway.validate();assertThat(flyway.info().pending()).isEmpty();assertThat(flyway.info().applied()).hasSize(2);
         try(var c=dataSource.getConnection();var s=c.createStatement();var r=s.executeQuery("SELECT count(*) FROM purchase")){r.next();assertThat(r.getLong(1)).isZero();}
     }
-    @ParameterizedTest @ValueSource(strings={"INSERT INTO purchase SELECT * FROM purchase","UPDATE purchase SET quantity=1","DELETE FROM purchase","TRUNCATE purchase","CREATE TABLE forbidden(id int)","ALTER TABLE purchase ADD COLUMN forbidden int","SELECT * FROM flyway_schema_history"})
+    @ParameterizedTest @ValueSource(strings={"INSERT INTO purchase SELECT * FROM purchase","UPDATE purchase SET quantity=1","DELETE FROM purchase","TRUNCATE purchase CASCADE","CREATE TABLE forbidden(id int)","ALTER TABLE purchase ADD COLUMN forbidden int","SELECT * FROM flyway_schema_history"})
     void runtimeHasOnlyReadPrivilege(String sql)throws SQLException {
         try(var c=dataSource.getConnection();var s=c.createStatement()) {
             assertThatThrownBy(()->s.execute(sql)).isInstanceOf(SQLException.class)

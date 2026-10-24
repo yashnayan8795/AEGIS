@@ -2,9 +2,9 @@
 
 ## Current authorization
 
-M1.1 and M1.2-A/B/C/D are accepted for progression. The user explicitly authorized M1.2-E Checkout only after baseline verification. Work on feature/m1.2-e-checkout from accepted local main. Implement only GET /api/v1/purchases/{purchaseId}, minimal service-owned JDBC/Flyway persistence, static snapshot constraints and service tests. Leave E changes uncommitted for review. Do not change contracts; report material contradictions. Preserve unrelated work.
+M1.1/M1.2 and the refined M1.3-A design are accepted for progression. The user authorized M1.3-B only: finalize accepted contracts and implement service-owned PostgreSQL/JDBC persistence foundations with tests. P-1 through P-5 and CD-1/CD-3 through CD-7 form the design baseline; CD-2 remains deferred. Current work preserves the pre-existing documentation changes on main 7fe74c1 and remains uncommitted for review. No commit, push or merge authorization.
 
-Authorized paths: Checkout module and directly related documentation. Inventory, Payment, Notification and infrastructure remain regression baselines. Necessary local dependency resolution, Testcontainers and verification are permitted. No cloud, Compose, purchase POST, workflow transitions, remote calls, compensation/recovery workers or later checkpoint implementation. E must not be marked accepted before user review. M1.2-F and M1.3 require separate explicit authorization.
+Authorized B paths: Checkout/Inventory/Payment persistence/domain/test code and new versioned Flyway migrations; relevant contracts and documentation. Preserve M1.2 behavior. No mutation controllers, reservation allocation/lifecycle execution, charge/refund execution, Saga orchestration, recovery/expiry workers, notification delivery, shared Java library, cloud, Compose or later infrastructure. Notification implementation remains a regression baseline. Required local Docker/dependency resolution and isolated free verification tooling are permitted. Do not edit applied V1 migrations. B must not be marked accepted automatically; C and later require explicit authorization.
 
 ## Working method
 
@@ -57,6 +57,6 @@ Update documentation with behavior changes. README commands must work in the cur
 
 Use OpenAPI 3.1 JSON under `contracts/` without a shared Java implementation library. Label all operations with milestone and implementation status. M1.3-reserved routes must not become M1.2 stub handlers. Use `/api/v1`, UUID resource identities, RFC 9457-style errors, Inventory price authority, INR and integer minor units. Contract examples are synthetic, not experimental results or production seeds.
 
-Keep M1.2 persistence minimal: catalog, purchase query representation, payment query representation, and notification receipt only. No reservation state machines, refund/recovery tables, reconciliation workers, or orchestration. Future schema needs must be documented separately. Automated database tests use Testcontainers; full provisioning and Compose remain M1.4.
+The accepted M1.2 persistence baseline is minimal: catalog, purchase query representation, payment query representation, and notification receipt only. No reservation state machines, refund/recovery tables, reconciliation workers, or orchestration. Approved M1.3-B persistence foundations may now be implemented; execution remains reserved for later checkpoints. Automated database tests use Testcontainers; full provisioning and Compose remain M1.4.
 
-Checkpoint order: A design/contracts; B Maven/Spring foundation; C Inventory; D Payment/Notification; E Checkout; F verification/documentation. Obtain explicit approval before each next checkpoint. Current authorization permits M1.2-E only. F and later require separate explicit approval.
+Checkpoint order: A design/contracts; B Maven/Spring foundation; C Inventory; D Payment/Notification; E Checkout; F verification/documentation. Obtain explicit approval before each next checkpoint. M1.2 is accepted for progression; current authorization permits M1.3-B foundations only. M1.3-C and later require separate explicit approval.

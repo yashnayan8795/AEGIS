@@ -108,7 +108,7 @@ class InventoryApplicationTest {
     @Test void migrationsApplyAndValidate() {
         flyway.validate();
         assertThat(flyway.info().pending()).isEmpty();
-        assertThat(flyway.info().applied()).hasSize(2); // Schema plus opt-in synthetic fixture.
+        assertThat(flyway.info().applied()).hasSize(3); // Two schema versions plus opt-in synthetic fixture.
     }
     @Test void runtimeCannotWriteOrCreateObjects() throws Exception {
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {

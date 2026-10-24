@@ -3,7 +3,7 @@
   "info": {
     "title": "Aegis Checkout API",
     "version": "0.1.0",
-    "description": "M1.2-A design contract only. No endpoint is implemented. M1.2 operations are scheduled for later authorized checkpoints. M1.3 operations are reserved and must not be registered as M1.2 stub handlers. All data is synthetic; no authentication platform is introduced. Local trusted development only."
+    "description": "Aegis authoritative wire contract. M1.2 operations implemented; M1.3 operations reserved and unregistered. Synthetic local trusted environment, no authentication or real provider."
   },
   "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
   "servers": [
@@ -15,7 +15,7 @@
   "tags": [
     {
       "name": "M1.2",
-      "description": "Approved M1.2 endpoint scope; not implemented."
+      "description": "Implemented M1.2 operation."
     },
     {
       "name": "M1.3",
@@ -29,7 +29,7 @@
         "summary": "Query purchase representation",
         "description": "",
         "x-aegis-milestone": "M1.2",
-        "x-aegis-implementation-status": "not-implemented",
+        "x-aegis-implementation-status": "implemented",
         "tags": [
           "M1.2"
         ],
@@ -528,7 +528,7 @@
             "name": "Idempotency-Key",
             "in": "header",
             "required": true,
-            "description": "UUID-form key scoped to purchase creation in the initial single synthetic client namespace. Canonical semantic payload is parsed sku and quantity. Retention/multi-client expansion requires M1.3 review.",
+            "description": "UUID-form key scoped to purchase creation in the initial single synthetic client namespace. Canonical semantic payload is parsed sku and quantity. Retention/multi-client expansion requires M1.3 review. Retain scope/key/canonical payload without automatic deletion in initial M1.3; matching replay returns 202, original Location and current snapshot even if terminal. Parsed UUID case is insignificant; parsed sku and integer quantity define equivalence.",
             "schema": {
               "type": "string",
               "format": "uuid",
@@ -703,12 +703,13 @@
           },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": " Finite UTC RFC 3339 instant, supported years 0001..9999. No infinity; cross-field ordering is a persistence/runtime invariant."
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "UTC; must be greater than or equal to createdAt. Cross-field time ordering is a runtime invariant."
+            "description": "UTC; must be greater than or equal to createdAt. Cross-field time ordering is a runtime invariant. Finite UTC RFC 3339 instant, supported years 0001..9999. No infinity; cross-field ordering is a persistence/runtime invariant."
           }
         },
         "required": [
@@ -725,7 +726,7 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "M1.2 query/test-fixture representation only. The oneOf matrix enumerates all valid exposed snapshots, not execution algorithms. paymentOutcomeKnown means Checkout has durably established a definitive charge outcome (SUCCEEDED or DECLINED); false includes no charge submitted, PENDING, or lost/uncertain response and never means decline. compensationPending means unresolved inventory cleanup, refund, or reconciliation obligations; not just a refund request in flight. FAILED requires all obligations settled and no delayed charge can still create an unaccounted effect. Historical terminal payment knowledge remains true after refund; refund does not erase charge success. No production seeds or unconditional progress guarantee. Compensation may have both price fields null while resolving cleanup for a reservation whose response/price was never established; paymentOutcomeKnown must then be false.",
+        "description": "Stored purchase snapshot for M1.2 query and reserved M1.3 submission/status; workflow execution is not implemented by contract preparation. The oneOf matrix enumerates all valid exposed snapshots, not execution algorithms. paymentOutcomeKnown means Checkout has durably established a definitive charge outcome (SUCCEEDED or DECLINED); false includes no charge submitted, PENDING, or lost/uncertain response and never means decline. compensationPending means unresolved inventory cleanup, refund, or reconciliation obligations; not just a refund request in flight. FAILED requires all obligations settled and no delayed charge can still create an unaccounted effect. Historical terminal payment knowledge remains true after refund; refund does not erase charge success. No production seeds or unconditional progress guarantee. Compensation may have both price fields null while resolving cleanup for a reservation whose response/price was never established; paymentOutcomeKnown must then be false.",
         "oneOf": [
           {
             "title": "PROCESSING / RESERVATION_PENDING",

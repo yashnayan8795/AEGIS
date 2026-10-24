@@ -1,6 +1,6 @@
 # Aegis architecture
 
-Status: checkpoints through D accepted for progression; E Checkout read model implemented and verified, awaiting user acceptance. Purchase/control-plane workflow diagrams describe future behavior. See README/DECISIONS for evidence.
+Status: refined M1.3-A accepted for progression by the user; B contract/persistence foundations implemented and verified, awaiting user review. No workflow execution or later checkpoint authorized. See D-017 in DECISIONS.md for current evidence.
 
 ## 1. Boundaries and ownership
 
@@ -322,3 +322,11 @@ V1 creates purchase with UUID primary key, valid SKU, positive int32 quantity, n
 A valid CONFIRMED row shape cannot prove successful payment and committed stock. Likewise, settled FAILED needs authoritative evidence that no unresolved effects remain. Test snapshots are hypothetical serialization/constraint cases, not proof of those effects. Before Inventory establishes a reservation price, amount/currency must both remain null; zero is never an unknown sentinel. M1.3 must add evidence recording and guarded, atomic transitions before it can write these states. New versioned migrations can add stable remote identities, obligations and worker metadata without replacing the read identity or exposing another service's tables. No such fields or algorithms are implemented in E.
 
 Tests compare all 400 state/step/flag/independent price-presence combinations with the contract, exercise all sixteen valid snapshots through HTTP, and check database permissions, migration validation, invalid rows, UTC mapping, exact required fields and storage-loss errors. They preserve historical-state and cross-service-evidence verification for M1.3.
+
+## 16. M1.3-A proposed correctness protocol
+
+[The detailed proposal](M1_3_TRANSACTION_DESIGN.md) evaluates ordering, maps invariants to tests, specifies state/evidence transitions and covers eighteen failure cases. Proposed choices include retained negative reservation outcomes, late issued-charge reconciliation, no opposing release/refund while commit may win, explicit Inventory locks/fresh DB time, and Checkout revision/generation fencing. The refined mechanisms/deltas are accepted for B foundations, except deferred CD-2. B adds new V2 foundation schemas and accepted contract clarifications; M1.2 routes retain behavior. Allocation, outcome execution and workflow/recovery remain later checkpoints.
+
+## M1.3-B actual implementation boundary
+
+B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. Stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery remain unverified future work. C and later require explicit acceptance/authorization. The six phases and 25 milestone names are unchanged.

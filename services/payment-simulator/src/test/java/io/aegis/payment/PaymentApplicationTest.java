@@ -77,8 +77,8 @@ class PaymentApplicationTest {
         }
     }
     @Test void defaultMigrationsContainNoOutcomeSeeds()throws Exception {
-        try(var c=owner();var s=c.createStatement()) {s.execute("TRUNCATE payment");}
-        flyway.validate();assertThat(flyway.info().pending()).isEmpty();assertThat(flyway.info().applied()).hasSize(1);
+        try(var c=owner();var s=c.createStatement()) {s.execute("TRUNCATE payment CASCADE");}
+        flyway.validate();assertThat(flyway.info().pending()).isEmpty();assertThat(flyway.info().applied()).hasSize(2);
         try(var c=dataSource.getConnection();var s=c.createStatement();var r=s.executeQuery("SELECT count(*) FROM payment")){r.next();assertThat(r.getLong(1)).isZero();}
     }
     @Test void runtimeIsReadOnlyAndCannotUseAnotherDatabase()throws SQLException {

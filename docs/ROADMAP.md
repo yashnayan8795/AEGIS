@@ -1,6 +1,6 @@
 # Aegis roadmap
 
-Status: exact approved six-phase, 25-milestone roadmap retained. M1.1 and M1.2-A/B/C/D accepted for progression. E explicitly authorized, implemented and verified; awaiting user acceptance. F and later remain unauthorized.
+Status: refined M1.3-A accepted for progression by the user; B contract/persistence foundations implemented and verified, awaiting user review. No workflow execution or later checkpoint authorized. See D-017 in DECISIONS.md for current evidence.
 
 ## Approved roadmap
 
@@ -77,12 +77,20 @@ Research success does not require positive predictive gains. It requires valid c
 | Checkpoint | Scope / expected artifacts | State |
 |---|---|---|
 | M1.2-A | Four OpenAPI contracts; update six baseline docs and accepted decisions | Accepted for progression by subsequent B/C authorization |
-| M1.2-B | Parent reactor, wrapper, four independent Spring Boot foundations | Implemented; initial reactor/four startup tests passed |
+| M1.2-B | Parent reactor, wrapper, four independent Spring Boot foundations | Accepted for progression; foundation verified |
 | M1.2-C | Inventory catalog persistence/read API and service tests | Accepted by user; reactor/PostgreSQL tests passed |
 | M1.2-D | Payment query persistence and Notification receipt/replay APIs with service tests | Accepted for progression by explicit E authorization |
-| M1.2-E | Checkout query persistence/API using test fixtures | Implemented/verified; awaiting user acceptance |
-| M1.2-F | Complete service-level verification, migration checks, accurate documentation | Not authorized |
+| M1.2-E | Checkout query persistence/API using test fixtures | Accepted for progression; integrated on main 7fe74c1 |
+| M1.2-F | Complete service-level verification, migration checks, accurate documentation | Audit executed 2026-10-21; M1.2 accepted for progression with follow-ups retained |
 
 Eventual M1.2 acceptance: four independently startable services, Inventory lookup against PostgreSQL, Notification creation and concurrent-safe replay, Checkout/Payment query behavior using test fixtures, successful service-level tests/migrations, and no cross-service database access. No production completed-purchase/payment seed data. Automated PostgreSQL tests use Testcontainers; manual prerequisites are documented, while complete Compose provisioning remains M1.4.
 
-Historical A authorization did not permit implementation. Subsequent B/C/D and then explicit E authorizations permit those checkpoints only; they do not authorize F or later. Minimal M1.2 schemas exclude refund/recovery tables, reconciliation workers, and reservation state machines. Future M1.3 endpoints are contract-only reservations.
+Historical A authorization did not permit implementation. Subsequent B/C/D and then explicit E authorizations permit those checkpoints only; the user subsequently authorized the F audit and accepted M1.2 for M1.3-A design-only progression. Minimal M1.2 schemas exclude refund/recovery tables, reconciliation workers, and reservation state machines. Future M1.3 endpoints are contract-only reservations.
+
+## Proposed M1.3 subdivisions (pending approval)
+
+The [design proposal](M1_3_TRANSACTION_DESIGN.md) suggests A design; B reviewed contracts/prerequisites; C Inventory; D Payment/refunds; E Checkout durable progression; F recovery/dispatch; G correctness audit. These are subdivisions of existing M1.3, not additional milestones or authorization to implement them. B foundations are now explicitly authorized; C and later need separate authorization. Payment timestamp hardening, contract-delta review, recovery policy and explicit next-checkpoint approval remain gates.
+
+## M1.3-B actual implementation boundary
+
+B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. Stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery remain unverified future work. C and later require explicit acceptance/authorization. The six phases and 25 milestone names are unchanged.
