@@ -6,7 +6,7 @@ Aegis is a research/learning project. The synthetic checkout environment is a te
 
 ## Current state
 
-M1.1 and M1.2-A/B/C/D are accepted for progression. Checkout E is implemented and verified, awaiting user acceptance. Work is on `feature/m1.2-e-checkout`, uncommitted for review. M1.2-F and later remain unauthorized. See [DECISIONS.md](docs/DECISIONS.md) for actual commands and results.
+M1.1 and M1.2 are accepted for progression by the user (2026-10-24). E is integrated on main at `7fe74c1`; the 2026-10-21 F audit passed 166 tests. The refined M1.3-A design is accepted for progression. M1.3-B persistence foundations are implemented and verified, awaiting user review; no distributed workflow execution exists. See [transaction design](docs/M1_3_TRANSACTION_DESIGN.md) and [decision record](docs/DECISIONS.md).
 
 Implemented endpoints:
 
@@ -59,7 +59,7 @@ One PostgreSQL server with separate service databases/roles is the intended topo
 - [Contributor instructions](AGENTS.md)
 - OpenAPI: [Checkout](contracts/checkout-v1.json), [Inventory](contracts/inventory-v1.json), [Payment](contracts/payment-v1.json), [Notification](contracts/notification-v1.json)
 
-Wire contracts remain unchanged. Their `not-implemented` labels record the contract-review snapshot; this README and verification record report current implementation status. Contract metadata changes require separate approval. Notification receiver replay (201 new, 200 same, 409 conflict) is implemented in accepted M1.2-D.
+Accepted B contract refinements are applied. M1.2 operation metadata now reports implemented; M1.3 mutation/query reservations remain unregistered. Notification receiver replay (201 new, 200 same, 409 conflict) is implemented in accepted M1.2-D.
 
 ## Local logs
 
@@ -134,4 +134,26 @@ Checkout's V1 creates only the purchase read model and primary-key index, with n
 
 Database CHECK constraints protect static representations, including paired positive INR amounts, contract snapshot combinations and finite ordered timestamps. They cannot prove cross-service evidence or legal historical transitions. M1.3 must separately add durable intent, guarded transitions, stable operation identities and recovery obligations through new migrations.
 
-E verification: **62 Checkout tests; 166 full-reactor tests, zero failures/errors/skips**. Checkout includes 8 unit, 8 MVC, 45 PostgreSQL/application/migration/isolation, and 1 real storage-loss case. All existing service regressions pass. The matrix test checks 400 candidates (16 valid, 384 rejected) within one test; these are not 400 independently counted tests. The standalone executable JAR started against disposable PostgreSQL with separate owner/reader roles and no purchase seed records. See D-014 in [DECISIONS.md](docs/DECISIONS.md) for commands, corrected initial failures, limitations and changed-file inventory. Logs: `logs/m1.2-e-*.log`; XML reports: `services/*/target/surefire-reports/`. E awaits acceptance; F/M1.3 have not begun.
+E verification: **62 Checkout tests; 166 full-reactor tests, zero failures/errors/skips**. Checkout includes 8 unit, 8 MVC, 45 PostgreSQL/application/migration/isolation, and 1 real storage-loss case. All existing service regressions pass. The matrix test checks 400 candidates (16 valid, 384 rejected) within one test; these are not 400 independently counted tests. The standalone executable JAR started against disposable PostgreSQL with separate owner/reader roles and no purchase seed records. See D-014 in [DECISIONS.md](docs/DECISIONS.md) for commands, corrected initial failures, limitations and changed-file inventory. Logs: `logs/m1.2-e-*.log`; XML reports: `services/*/target/surefire-reports/`. E and M1.2 were subsequently accepted for progression. F audit evidence is summarized below; M1.3-A is design only.
+
+## M1.2 acceptance and M1.3-A design status
+
+The user accepted M1.2 for progression to M1.3-A. The 21 October audit verified 166 tests with zero failures/errors/skips and four independent packaged starts; these are historical results, not a new run for the 24 October documentation work. No substantial foundation redesign was identified. The audit's initial JAR lock came from a stale agent-owned smoke process; it was removed and the reactor rerun passed.
+
+B now hardens Payment timestamps through V2 and runs isolated dedicated OpenAPI validation. Existing five endpoints retain their M1.2 behavior; reserved M1.3 operations are still not registered.
+
+[The M1.3-A proposal](docs/M1_3_TRANSACTION_DESIGN.md) covers workflow ordering, safety/liveness, state transitions, durable identities, rejection retention, concurrency, compensation, recovery and proposed contract deltas. The user accepted the refined baseline and authorized B foundations only; C and later remain unauthorized.
+
+## M1.3-B persistence foundations
+
+Three new service-owned `V2__transaction_foundations.sql` migrations add Checkout key/workflow/intent/observation/notification-intent storage; Inventory request outcomes and reservation snapshots; and Payment finite timestamp guards, immutable policy and refund storage. Applied V1 migrations are untouched. No sample purchases/payments/refunds are inserted on startup.
+
+New internal repositories support canonical replay/conflict, atomic storage admission, mappings and fenced observation writes. These are not registered HTTP mutations. Inventory allocation/conservation/expiry execution, charge/refund outcome execution, orchestration, workers and notification dispatch remain unimplemented. Payment admission persists PENDING metadata; later D execution must resolve under its encompassing local transaction. No success is fabricated by B.
+
+Manual runtime privileges stay minimal: existing reads need their existing SELECT grants. Only when internal B writer primitives are deliberately used, grant Checkout SELECT/INSERT on purchase, purchase_key, purchase_workflow, workflow_intent and workflow_observation plus UPDATE on purchase_workflow/workflow_observation only; Inventory SELECT/INSERT on reservation_request and SELECT on reservation/catalog for its current repository; Payment SELECT/INSERT on payment/charge_policy/refund plus the reads required by local triggers. Do not grant DELETE/TRUNCATE/DDL, migration-history writes or cross-database access. Tests use broader business-table UPDATE grants specifically to exercise guarded/illegal updates. Migrator ownership remains separate; application migrations create no roles/databases. No complete deployment/provisioning script is introduced.
+
+Build/test command remains `.\mvnw.cmd -B verify`. This workspace uses `$env:MAVEN_USER_HOME='D:\agies\.m2'` and `$env:MAVEN_OPTS='-Dmaven.repo.local=D:/agies/.m2'` for its ignored local cache. Testcontainers creates disposable PostgreSQL environments; migration tests now validate V1 plus V2 (Inventory local-profile tests also include its repeatable catalog fixture). Existing query fixtures remain test-only; their cleanup cascades across new service-local foreign keys.
+
+Dedicated contract tool is isolated at `.tools/openapi-validator` (ignored), not an application dependency. `openapi-spec-validator 0.9.0` checks all four OpenAPI3.1 specifications; `jsonschema 4.26.0` checks 25 schema examples. Specification validation does not certify an unimplemented route or prove distributed safety. See D-017 for actual command/test evidence and the changed-file inventory.
+
+B final verification: **231 tests, zero failures/errors/skips** (Checkout85, Inventory49, Payment58, Notification39), including65 new PostgreSQL foundation cases. V1-to-V2 data preservation and invalid legacy timestamp rejection passed. Full reactor and independent changed-service packaging passed; four JARs contain current migrations and no test fixtures. Final log: `logs/m1.3-b-final-verified.log`; contracts: `logs/m1.3-b-final-contracts.log`. B is ready for review, not accepted automatically; no C work has begun.

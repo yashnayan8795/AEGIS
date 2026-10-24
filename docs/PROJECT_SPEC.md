@@ -1,6 +1,6 @@
 # Aegis project specification
 
-Status: M1.1 and M1.2-A/B/C/D accepted for progression. E Checkout read model implemented and verified, awaiting user acceptance. F and later remain unauthorized. README and DECISIONS separate current capabilities from future requirements.
+Status: refined M1.3-A accepted for progression by the user; B contract/persistence foundations implemented and verified, awaiting user review. No workflow execution or later checkpoint authorized. See D-017 in DECISIONS.md for current evidence.
 
 ## 1. Problem and purpose
 
@@ -108,7 +108,7 @@ See [DECISIONS.md](DECISIONS.md) for status and [ROADMAP.md](ROADMAP.md) for aut
 
 ## 9. Accepted M1.2 execution scope
 
-The user accepted previous checkpoints through D and explicitly authorized E Checkout queries only. F and later remain unauthorized. Contracts live in [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), and [Notification](../contracts/notification-v1.json). Contract labels describe the review snapshot; current implementation status is reported in README.
+The user accepted M1.2, including integrated E and the F audit, for progression to M1.3-B foundations only. Later execution requires explicit authorization. Contracts live in [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), and [Notification](../contracts/notification-v1.json). Contract labels describe the review snapshot; current implementation status is reported in README.
 
 M1.2 acceptance requires four independently startable applications; Inventory catalog reads against PostgreSQL; Notification creation and idempotent replay under concurrent duplicates; Checkout/Payment query behavior using test fixtures; passing service-level tests and Flyway migrations; and no cross-service database access. Purchase submission, reservation commands, payment/refund execution, recovery, and compensation remain M1.3-reserved contracts. Do not populate production databases with fictional completed purchases/payments.
 
@@ -123,4 +123,12 @@ Payment GET reads only its database and preserves definitive versus pending stat
 
 ## 11. M1.2-E implementation scope
 
-Checkout now reads a durable service-local purchase representation through GET only. Its eleven fields preserve nullable authoritative amount/currency and the approved state/step/flag matrix. One V1 purchase table enforces static row invariants, including ordered finite timestamps. Runtime permissions are SELECT-only; migration ownership is separate. No production purchase fixtures, commands, state transitions, remote lookups, workers, idempotency tables or compensation/recovery machinery exist. Test-only snapshots exercise representations without asserting distributed evidence. E verification and acceptance gate are recorded in D-014; F and later need explicit authorization.
+Checkout now reads a durable service-local purchase representation through GET only. Its eleven fields preserve nullable authoritative amount/currency and the approved state/step/flag matrix. One V1 purchase table enforces static row invariants, including ordered finite timestamps. Runtime permissions are SELECT-only; migration ownership is separate. No production purchase fixtures, commands, state transitions, remote lookups, workers, idempotency tables or compensation/recovery machinery exist. Test-only snapshots exercise representations without asserting distributed evidence. Historical E verification is recorded in D-014; subsequent audit/acceptance and the design-only authorization are recorded in D-015/D-016.
+
+## 12. M1.3-A design proposal
+
+The [transaction design](M1_3_TRANSACTION_DESIGN.md) proposes explicit Saga invariants and evidence-based transitions while preserving existing public states. The refined design is accepted for B foundations, not implemented Saga capability. B addresses Payment finite timestamps and dedicated specification validation. Conditional recovery progress is not a guarantee under permanent outage or failed compensation. No numerical research result or new feature is claimed.
+
+## M1.3-B actual implementation boundary
+
+B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. Stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery remain unverified future work. C and later require explicit acceptance/authorization. The six phases and 25 milestone names are unchanged.

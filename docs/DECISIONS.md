@@ -1,8 +1,8 @@
 # Aegis architecture decisions
 
-Current status (2026-10-20): checkpoints through D accepted for progression; integrated local main at 1435181 contains D. E Checkout implemented and verified, awaiting user acceptance. F and later remain unauthorized. Earlier verification sections are historical; D-014 is the current record.
+Current status (2026-10-24): M1.2 and refined M1.3-A accepted for progression. M1.3-B contract/persistence foundations implemented and verified, awaiting user acceptance. C/later unauthorized. D-017 is the current implementation record.
 
-**Approved** means accepted design baseline, not implemented capability. **Proposed** means a recommendation awaiting review. **Deferred** means intentionally unresolved until an authorized milestone. Current explicit authorization permits M1.2-E only. Leave E changes uncommitted on feature/m1.2-e-checkout; no commit, push or merge is authorized. Earlier restrictions and working-tree descriptions are historical.
+**Approved** means accepted baseline, not necessarily implemented capability. **Proposed** means pending user review; **Deferred** means intentionally unresolved. Current authorization permits M1.3-B contract/persistence foundations only. Leave changes uncommitted. Historical restrictions, branch descriptions and verification records below describe their dated checkpoints.
 
 ## D-001 — Research testbed and scope
 
@@ -379,3 +379,141 @@ services/checkout-service/src/test/java/io/aegis/checkout/api/PurchaseController
 services/checkout-service/src/test/java/io/aegis/checkout/application/PurchaseServiceTest.java
 services/checkout-service/src/test/resources/fixtures/purchases.json
 ```
+
+## D-015 - M1.2 audit and acceptance for progression
+
+**Status: accepted for progression by explicit user statement on 2026-10-24.** E was integrated through PR #2 as main 7fe74c1. The 2026-10-21 F audit reran the reactor: 166 tests, zero failures/errors/skips (Checkout 62, Inventory 31, Payment 34, Notification 39), plus four independent JAR starts using separate databases and restricted roles. The initial F packaging failure was an agent-owned stale E smoke process locking the JAR; verified cleanup and reactor retry passed. This corrects D-014's incomplete process-cleanup claim. No fresh build/test is claimed for today's documentation change.
+
+Administrative status is now synchronized; implementation remains the five M1.2 endpoints. Payment V1 still permits non-finite timestamps: new migration/tests before writers remain open. Dedicated OpenAPI validation remains unavailable; partial checks are not certification. Acceptance for progression does not mean these follow-ups were fixed or that Phase 1/M1.3 is complete.
+
+## D-016 - M1.3-A Saga correctness proposal
+
+**Status: refined design accepted for B progression on 2026-10-24; CD-2 deferred.** Historical proposal preparation follows; D-017 records the subsequent authorization/implementation. Detailed design: [M1_3_TRANSACTION_DESIGN.md](M1_3_TRANSACTION_DESIGN.md). Approved M1.1/M1.2 constraints remain intact; A creates no implementation.
+
+- P-1: durable Checkout acceptance -> reserve -> charge -> commit -> atomic confirmation/notification intent; notification outside the critical path; no opposing release/refund while a published commit may win.
+- P-2: fixed persisted UUIDs, scoped semantic key replay, retained identities/negative results without automatic deletion.
+- P-3: Inventory request-outcome ledger including definitive rejection; locked lifecycle and fresh DB time after all contention waits; conserved stock counters.
+- P-4: once charge intent exists, reconcile same ID even after expiry; absent charge may require original PUT and then refund. No decline inferred from timeout/404. This cost needs explicit approval or a separately designed remote cancellation fence.
+- P-5: durable intents/evidence, short local transactions, revision/generation claims and retained compensation obligations. Fencing protects local writes; downstream idempotency/terminal guards handle already-sent HTTP.
+
+Contract deltas CD-1 through CD-7 are identified for review (negative reservation replay, refund reason, pending processing, timestamps, metadata, key scope and expiry-cleanup acknowledgement). No approved JSON changed. Existing purchase states and snapshot matrix are preserved. Budgets, checkpoint sequence and attention/remediation policy are proposed, not accepted defaults. Detailed tables include formal invariants/test falsifiers and all eighteen requested failure scenarios.
+
+Documentation choice: one new detailed design file, with links/status corrections in the six existing documents, avoids copying algorithms across files. M1.3-B and later require separate explicit acceptance/authorization. No Java, migration, route, worker, dependency, infrastructure or application test changes are permitted in A.
+
+### M1.3-A documentation verification (2026-10-24)
+
+Executed checks: all seven changed Markdown documents have resolving local links and balanced code fences; exact six phase headings and 25 milestone lines match HEAD; only README, AGENTS, four baseline docs and the new design document changed. All four unchanged JSON contracts parsed and 83 local references resolved. Design coverage checks found eighteen failure cases, eighteen invariant/test entries and seven contract-delta proposals. git diff --check passed. Formal payment invariants use PAY-* to distinguish them from P-* proposal IDs.
+
+Dedicated validation remains unavailable: Python openapi_spec_validator/jsonschema and local Node Redocly CLI/Swagger Parser/Ajv were not installed. No validator name/version/result is applicable; no dependency was installed and structural checks are not full OpenAPI conformance. No Maven build, application test, Java/SQL implementation, migration, infrastructure, deployment, commit or push occurred in this design-only checkpoint. The earlier 166-test result remains dated 2026-10-21. User review of the design and separate next-checkpoint authorization remain pending.
+
+## D-017 - Accepted M1.3-A and authorized M1.3-B foundations
+
+**Status: A accepted for progression; B implemented and verified, awaiting user acceptance.** The user confirmed proceeding with A then B after being asked whether refined P-1..P-5 and CD-1/CD-3..CD-7 were accepted with CD-2 deferred. This authorizes B only, not C or full Saga execution. Starting baseline main was 7fe74c1; seven existing A documentation changes were preserved and updated consistently. Work remains uncommitted on main, with no branch switch, merge, commit, push or history rewrite.
+
+### Implemented schemas and storage behavior
+
+| Service | New migration | Actual contents |
+|---|---|---|
+| Checkout | V2__transaction_foundations.sql | Canonical purchase_key binding; purchase_workflow IDs/revision/generation/lease/pause/scheduling and independent obligations; immutable workflow_intent; guarded workflow_observation; stable notification_intent requiring a confirmed snapshot. Existing Purchase wire shape unchanged. |
+| Inventory | V2__transaction_foundations.sql | Immutable reservation_request with CREATED/REJECTED and canonical payload/retained error; reservation snapshots with local catalog/request FKs, positive checked product, price/currency/deadline and terminal guards; partial expiry index; deferred request/reservation consistency. No allocation/counter mutation/expiry executor. |
+| Payment | V2__transaction_foundations.sql | Finite supported-range time checks on payment; immutable charge_policy; one full refund identity per successful charge with retained policy, reason, time/terminal guards; no executor. |
+
+All four applied V1 migration contents are unchanged. Windows checkout CRLF differs from Git LF; a raw-byte HEAD comparison initially flagged that normalization, not an edit. Git diff and normalized-content verification confirm no V1 changes. Default databases gain no business outcome seeds. Only test fixtures represent hypothetical pending/terminal records. Existing test cleanup now uses disposable TRUNCATE ... CASCADE for service-local FKs; migration-count assertions reflect V2.
+
+Checkout WorkflowRepository.initialize atomically arbitrates the scoped client key, compares canonical SKU/quantity after a uniqueness conflict, stores the initial unpriced PROCESSING snapshot, fixed IDs and reserve intent. It does not register POST or dispatch anything. A matching replay returns the existing workflow/IDs; a conflicting semantic payload rolls back. Claim locks the workflow, reads fresh DB time, rejects paused/terminal/live claims and increments revision/generation; observe requires owner/generation/revision/live lease and rejects terminal purchases. Observation CHECK/trigger guards prevent regressive/contradictory terminal values. No public Purchase advancement, retry worker, resumption mechanism or downstream evidence validation exists.
+
+Inventory ReservationRepository retains a caller-decided rejection transactionally and returns the committed identity winner without recalculating error based on current stock. Changed payload/purchase conflicts; same-purchase/different-ID uniqueness is enforced. Read mapping covers complete Reservation fields. Actual request decision, stock movement, conservation counters, expiry time after lifecycle waits and mutation handlers remain C. Test snapshots with ACTIVE rows are hypothetical representation fixtures, not evidence of stock allocation.
+
+PaymentFoundationRepository atomically stores a PENDING admission plus retained policy; replay preserves chosen inputs and rejects changed charge payload. Existing legacy PENDING without policy cannot acquire invented inputs. Refund admission stores PENDING only, requires a matching SUCCEEDED parent, enforces full amount/reason/identity uniqueness and retains policy. SyntheticPolicy.normal describes AEGIS_SUCCESS_V1/NORMAL_SUCCESS/SUCCEEDED but executes no effect. A later D executor must resolve admission within its enclosing local transaction for normal immediate terminal behavior. Legacy pending GET remains compatible. No charge/refund state executor or public mutation API is implemented.
+
+These Spring JDBC repositories use constructor injection, parameterized SQL and short Spring-proxied local transactions. No remote HTTP or JVM lock participates. Storage exceptions are not yet new HTTP business-code mappings; future C/D/E application layers must implement those contracts. Canonical fields, not collision-prone hash equality alone, define replay. Separate test runtime writer credentials have SELECT/INSERT/UPDATE on owned business tables only, no DELETE/DDL/history access/cross-database connection; production read roles need no expanded grants for current GETs. Grant only required local actions when writer primitives are deliberately used. No service depends on another implementation module; no Maven dependency/version changed.
+
+Correctness review removed an overly restrictive draft CHECK coupling refund_required to cleanup_required: refund may remain outstanding after Inventory cleanup settles. Tests now cover independence. Review also added terminal claim/observation exclusion and immutable workflow-bound purchase/notification identity guards before final verification.
+
+### Contract changes and dedicated validation
+
+Accepted CD-1/3/4/5/6/7 clarifications are in all four JSON contracts: retained negative reservation replay; current-resource pending resolution semantics with fixed policy inputs; finite supported-range timestamps; accurate implemented M1.2 metadata; key scope/retention; and committed expiry cleanup before conflict acknowledgement. Five M1.2 operation labels are implemented; eight M1.3 labels stay not-implemented. No reserved controller was registered. CD-2 remains deferred: RefundRequest still accepts only RESERVATION_EXPIRED. No public request/response properties, enums or existing M1.2 statuses were removed or changed.
+
+Free OpenAPI validation tooling is isolated in ignored .tools/openapi-validator, not an application dependency or global install. An initial 0.7.2 install was upgraded before validation to openapi-spec-validator 0.9.0, whose [official package metadata](https://pypi.org/project/openapi-spec-validator/) supports Python 3.14 and OpenAPI3.1. Validator classes and jsonschema 4.26.0 ran successfully on all four specifications plus 25 component-schema examples. This checks the specifications/examples, not conformance or safety of unimplemented HTTP operations. It closes the missing-tool follow-up for specification validation, not the future runtime-contract gate.
+
+### Verification evidence
+
+All commands ran in D:\agies with MAVEN_USER_HOME=D:\agies\.m2 and MAVEN_OPTS=-Dmaven.repo.local=D:/agies/.m2; caches/logs/tools/target outputs are ignored. Installed Docker Desktop was initially stopped; launched hidden and waited for Linux Engine 29.3.1 before baseline. No cloud/Compose deployment. Existing Java21.0.10/Boot4.1.1/Maven3.9.15/PostgreSQL17.11 baseline unchanged.
+
+| Command/run | Actual outcome |
+|---|---|
+| `.\mvnw.cmd -B verify` before changes | PASS166, zero failures/errors/skips; logs/m1.3-b-baseline.log |
+| `.\mvnw.cmd -B '-DskipTests' package` | PASS all four JARs; test compilation only, execution intentionally skipped; logs/m1.3-b-compile.log |
+| `.\mvnw.cmd -B verify` initial foundation run | PASS221, zero failures/errors/skips; logs/m1.3-b-first.log |
+| Same command after schema/contention hardening | PASS225, zero failures/errors/skips; logs/m1.3-b-final.log |
+| Same command after new upgrade tests | FAIL: Checkout83, one assertion failure, zero errors/skips; later modules not run. Upgrade assertion counted Flyway's schema-creation marker as a third migration. Corrected to count SQL migrations, no schema repair needed; logs/m1.3-b-verified.log |
+| Same command after count correction | PASS229, zero failures/errors/skips; logs/m1.3-b-accepted-verification.log |
+| Final `.\mvnw.cmd -B verify` after independent-obligation/terminal-eligibility correction | PASS231, zero failures/errors/skips; logs/m1.3-b-release-check.log |
+| `.\.tools\openapi-validator\Scripts\python.exe` using OpenAPIV31SpecValidator and Draft202012Validator/FormatChecker | PASS4 specifications and25 examples; version0.9.0/jsonschema4.26.0; logs/m1.3-b-contract-validation.log |
+
+Tests added: PostgreSQL mappings, six-client matching/conflicting key races, retained rejection races, charge admission/policy replay and refund parent-uniqueness contention, transaction rollback, immutable identity/payload/policy, monotone observations, lease generation stale rejection, independent obligations, terminal eligibility, role isolation and migration upgrades preserving V1 data. Payment invalid-legacy infinity makes the V2 upgrade fail and leaves V1 data untouched; no silent repair. An isolated schema adds a Flyway schema marker, so SQL migration versions are counted separately. Each service's foundation cases reset disposable data independently; no sleep-based ordering or H2.
+
+### Limits and acceptance gate
+
+Established only storage-level guarantees. No proof yet of stock conservation/non-overselling, expiry-after-lock eligibility, real service-to-service timeout/replay behavior, actual charge/refund effects, cross-service evidence validation, safe public terminal transitions, full lease renewal/worker scheduling, crash recovery or notification dispatch. These remain C/D/E/F/G gates. Schema-supported states and synthetic chosen outcome metadata are not executed business effects. No performance/research conclusion is claimed.
+
+Existing Mockito dynamic-agent/Jackson deprecation warnings remain non-failing. Manual databases/roles and UTC JVM launch remain prerequisites outside Testcontainers. No blocking application issue is currently identified; B acceptance belongs to the user. Recommended next checkpoint is C: Inventory counters/allocation and reservation lifecycle with authoritative expiry/terminal races, after explicit authorization. M1.3 as a whole is not complete.
+
+### Working-tree file inventory (includes preserved A documentation)
+
+```text
+AGENTS.md
+README.md
+contracts/checkout-v1.json
+contracts/inventory-v1.json
+contracts/notification-v1.json
+contracts/payment-v1.json
+docs/ARCHITECTURE.md
+docs/DECISIONS.md
+docs/M1_3_TRANSACTION_DESIGN.md
+docs/PROJECT_SPEC.md
+docs/ROADMAP.md
+services/checkout-service/src/main/java/io/aegis/checkout/domain/Workflow.java
+services/checkout-service/src/main/java/io/aegis/checkout/infrastructure/persistence/WorkflowRepository.java
+services/checkout-service/src/main/resources/db/migration/V2__transaction_foundations.sql
+services/checkout-service/src/test/java/io/aegis/checkout/CheckoutApplicationTest.java
+services/checkout-service/src/test/java/io/aegis/checkout/FoundationDatabase.java
+services/checkout-service/src/test/java/io/aegis/checkout/FoundationPersistenceTest.java
+services/inventory-service/src/main/java/io/aegis/inventory/domain/Reservation.java
+services/inventory-service/src/main/java/io/aegis/inventory/infrastructure/persistence/ReservationRepository.java
+services/inventory-service/src/main/resources/db/migration/V2__transaction_foundations.sql
+services/inventory-service/src/test/java/io/aegis/inventory/FoundationDatabase.java
+services/inventory-service/src/test/java/io/aegis/inventory/FoundationPersistenceTest.java
+services/inventory-service/src/test/java/io/aegis/inventory/InventoryApplicationTest.java
+services/payment-simulator/src/main/java/io/aegis/payment/domain/RefundRecord.java
+services/payment-simulator/src/main/java/io/aegis/payment/domain/SyntheticPolicy.java
+services/payment-simulator/src/main/java/io/aegis/payment/infrastructure/persistence/PaymentFoundationRepository.java
+services/payment-simulator/src/main/resources/db/migration/V2__transaction_foundations.sql
+services/payment-simulator/src/test/java/io/aegis/payment/FoundationDatabase.java
+services/payment-simulator/src/test/java/io/aegis/payment/FoundationPersistenceTest.java
+services/payment-simulator/src/test/java/io/aegis/payment/PaymentApplicationTest.java
+services/payment-simulator/src/test/resources/fixtures/payments.sql
+```
+
+### Final B result and acceptance checklist
+
+Final source declares READ COMMITTED explicitly on every new transaction primitive; enclosing caller transactions must use that same isolation. A final `.\mvnw.cmd -B verify` after this declaration passed **231 tests, 0 failures, 0 errors, 0 skips**, all five reactor projects successful (logs/m1.3-b-final-verified.log). It produced all four executable Java21 Boot JARs with current migrations and no test fixtures. Independent packaging `.\mvnw.cmd -B -pl services/checkout-service,services/inventory-service,services/payment-simulator -am '-DskipTests' package` also passed; tests were intentionally not executed by that packaging-only command (logs/m1.3-b-independent-package.log). Subsequent contract-description clarification passed dedicated validation again (logs/m1.3-b-final-contracts.log); schema shapes and required fields are unchanged.
+
+| Service | Retained baseline tests | New PostgreSQL foundation tests | Total | Failures/errors/skips |
+|---|---:|---:|---:|---|
+| Checkout | 62 | 23 | 85 | 0/0/0 |
+| Inventory | 31 | 18 | 49 | 0/0/0 |
+| Payment | 34 | 24 | 58 | 0/0/0 |
+| Notification | 39 | 0 | 39 | 0/0/0 |
+| Total | 166 | 65 | 231 | 0/0/0 |
+
+Final checks: exact six phase headings/25 milestone lines, local Markdown links/fences and git diff --check; all V1 contents unchanged; parent POM/wrapper/ignore and Notification implementation unchanged; exactly five implemented M1.2 handlers, eight reserved M1.3 operations, no clients/workers/Compose/cloud additions. No public DTO schema shape/status/enum changed; CD-2 remains deferred. Isolated validation-tool/cache/logs/target artifacts stay ignored. Application runtime role grants remain external and service-local, not administrator credentials. These checks do not establish distributed orchestration or stock/payment business execution.
+
+- [x] Accepted A baseline and B-only authorization recorded; existing local documentation preserved.
+- [x] Three additive V2 migrations and service-local repository/domain primitives implemented.
+- [x] Canonical replay/conflict, identity/policy guards, rollback, migration upgrades and role tests pass.
+- [x] All166 baseline regressions plus65 new tests pass; final reactor/packaging and dedicated specification validation pass.
+- [x] No unimplemented mutation routes, remote calls, workers, outcome seeds or later execution behavior added.
+- [x] Known limits and future correctness gates recorded; no experiment result fabricated.
+- [ ] User acceptance of M1.3-B.
+- [ ] Explicit authorization for C; M1.3 overall remains incomplete.
