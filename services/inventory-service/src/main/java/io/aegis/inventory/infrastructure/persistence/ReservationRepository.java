@@ -22,8 +22,14 @@ public class ReservationRepository {
     @Transactional(isolation=Isolation.READ_COMMITTED)
     public RequestOutcome retainRejection(UUID id,UUID purchase,String sku,int quantity,String error) {
         jdbc.sql("""
+            INSERT INTO reservation_identity(reservation_id,purchase_id,sku,quantity)
+            VALUES (:id,:purchase,:sku,:quantity) ON CONFLICT DO NOTHING
+            """).param("id",id).param("purchase",purchase).param("sku",sku).param("quantity",quantity).update();
+        if(jdbc.sql("SELECT reservation_id FROM reservation_identity WHERE reservation_id=:id").param("id",id).query(UUID.class).optional().isEmpty())
+            throw new org.springframework.dao.DataIntegrityViolationException("Purchase already bound to another reservation identity");
+        jdbc.sql("""
             INSERT INTO reservation_request(reservation_id,purchase_id,sku,quantity,outcome,error_code)
-            VALUES (:id,:purchase,:sku,:quantity,'REJECTED',:error) ON CONFLICT(reservation_id) DO NOTHING
+            VALUES (:id,:purchase,:sku,:quantity,'REJECTED',:error) ON CONFLICT DO NOTHING
             """).param("id",id).param("purchase",purchase).param("sku",sku).param("quantity",quantity).param("error",error).update();
         var row=request(id).orElseThrow();
         if(!row.purchaseId().equals(purchase)||!row.sku().equals(sku)||row.quantity()!=quantity)throw new RequestConflict();

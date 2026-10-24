@@ -1,8 +1,8 @@
 # Aegis architecture decisions
 
-Current status (2026-10-24): M1.2 and refined M1.3-A accepted for progression. M1.3-B contract/persistence foundations implemented and verified, awaiting user acceptance. C/later unauthorized. D-017 is the current implementation record.
+Current status (2026-10-25): M1.2 and M1.3-A/B accepted for progression. The user explicitly authorized M1.3-C Inventory lifecycle implementation only. C is implemented and verified (311 reactor tests), pending user acceptance. D-018 is the current implementation record; D and later remain unauthorized.
 
-**Approved** means accepted baseline, not necessarily implemented capability. **Proposed** means pending user review; **Deferred** means intentionally unresolved. Current authorization permits M1.3-B contract/persistence foundations only. Leave changes uncommitted. Historical restrictions, branch descriptions and verification records below describe their dated checkpoints.
+**Approved** means accepted baseline, not necessarily implemented capability. **Proposed** means pending user review; **Deferred** means intentionally unresolved. Current authorization permits M1.3-C Inventory reservation lifecycle only. Leave changes uncommitted. Historical restrictions, branch descriptions and verification records below describe their dated checkpoints.
 
 ## D-001 — Research testbed and scope
 
@@ -517,3 +517,150 @@ Final checks: exact six phase headings/25 milestone lines, local Markdown links/
 - [x] Known limits and future correctness gates recorded; no experiment result fabricated.
 - [ ] User acceptance of M1.3-B.
 - [ ] Explicit authorization for C; M1.3 overall remains incomplete.
+
+## D-018 - M1.3-C Inventory reservation lifecycle
+
+**Status: implementation authorized by the user's M1.3-C request; pending user acceptance.** A/B are accepted for progression by that request. No D/later implementation or Git integration is authorized. Baseline inspection found a clean feature/transaction-design at cbb5179 containing the accepted A/B foundations. The baseline full reactor passed 231 tests (Checkout85, Inventory49, Payment58, Notification39), zero failures/errors/skips (logs/m1.3-c-baseline.log). Latest instruction supersedes the earlier B-only authorization; historical records are preserved.
+
+### Implementation and API boundary
+
+Inventory alone now implements the approved four reservation routes. Controller validates the wire shape and maps committed outcomes; application validates UUID/SKU/positive quantity and delegates; the transactional JDBC adapter owns local SQL/locks and returns domain decisions. Expected business failures are values until the proxied transaction commits, then become Problem Details. This prevents retained rejection metadata or expiry reclamation from being rolled back by an HTTP conflict. All failures are sanitized; 503 means storage unavailable and a mutation may have an unknown outcome, never proof of rollback.
+
+| Operation | Established behavior |
+|---|---|
+| PUT /api/v1/reservations/{reservationId} | 201 + relative Location for a newly allocated reservation; 200 identical existing allocation, including current terminal state and original price/deadline |
+| GET /api/v1/reservations/{reservationId} | 200 persisted snapshot, no expiry mutation; 404 RESERVATION_NOT_FOUND for unknown/rejected identities |
+| PUT /api/v1/reservations/{reservationId}/commit | 200 eligible ACTIVE -> COMMITTED, or unchanged COMMITTED replay even after deadline; 409 RESERVATION_EXPIRED/RESERVATION_RELEASED otherwise |
+| PUT /api/v1/reservations/{reservationId}/release | 200 ACTIVE -> RELEASED before deadline, ACTIVE -> EXPIRED at/after deadline, or unchanged RELEASED/EXPIRED replay; 409 RESERVATION_COMMITTED |
+
+Creation uses distinct 409 RESERVATION_ID_REUSED / PURCHASE_RESERVATION_EXISTS / INSUFFICIENT_STOCK; unknown SKU is 404 ITEM_NOT_FOUND; checked positive signed-long multiplication overflow is 400 MONETARY_OVERFLOW. Valid negative requests retain their original outcome. Invalid UUID/SKU/quantity/JSON is 400 INVALID_REQUEST without binding; unsupported creation media type is 415 UNSUPPORTED_MEDIA_TYPE. Missing lifecycle identity is 404; storage loss is 503 SERVICE_UNAVAILABLE; unexpected failures are 500 INTERNAL_ERROR. No response shape, public state, business error code or method changed. Only Inventory implementation-status/descriptive metadata changed in its OpenAPI document. Other contracts and other-service code are unchanged.
+
+### Migration inventory and accounting
+
+- Existing Inventory V1 catalog and V2 foundations remain unchanged. Other services' migrations remain unchanged.
+- New V3__reservation_accounting.sql adds private reservation_identity admission arbitration; a final immutable CREATED/REJECTED ledger result must exist before its transaction can commit. Existing retained V2 negative outcomes backfill their canonical identity. No public intermediate state is introduced.
+- V3 adds initial_quantity, reserved_quantity and sold_quantity, leaving available_quantity explicit. Initial stock is initialized from existing catalog availability. All counters are nonnegative; numeric CHECK arithmetic avoids overflow while enforcing A+R+S=T. Initial quantity and SKU are immutable; no restock protocol is implemented.
+- Deferred constraint triggers check R=sum(ACTIVE quantity), S=sum(COMMITTED quantity), taking the catalog row lock before the aggregate. Overdue ACTIVE still counts as reserved. A partial (sku,state) INCLUDE(quantity) index supports these accounting checks; V2 identity/deadline indexes remain.
+- V3 refuses any pre-existing V2 reservation snapshot: B stored hypothetical representations without stock allocation, so automatic conversion would fabricate history. The migration rolls back with its original data intact. A real deployment with such rows needs an explicitly reviewed accounting migration. Empty reservation tables, catalog balances and retained rejections upgrade normally.
+- No production seed, new dependency, shared implementation library, cross-service SQL/foreign key, worker or infrastructure was added.
+
+Why explicit available stock: row locking allows an immediate checked allocation and conserved transfer in a short transaction. Deriving availability by scanning reservations would still require serialization and complicate the authoritative allocation point. Redundant counters are protected against row and ledger drift by database constraints/triggers, not by assuming every caller updates them correctly. The aggregate checks add work proportional to relevant history; no throughput claim has been measured.
+
+### SQL concurrency and transaction boundaries
+
+**Creation:** READ COMMITTED; INSERT reservation_identity ON CONFLICT DO NOTHING RETURNING reservation_id arbitrates both reservation and purchase uniqueness before any catalog lock. If a competing transaction commits, the next statement reads its committed binding and immutable outcome; rollback permits a new contender. Same identity/different canonical payload conflicts; a purchase bound elsewhere conflicts. For a new identity, lock catalog FOR UPDATE; choose authoritative price, checked total and stock result. Negative outcomes and identity commit together. For success, sample clock_timestamp(), establish immutable expiry, transfer A -> R and insert CREATED ledger plus ACTIVE reservation in the same transaction. No acknowledgement precedes database commit.
+
+**Commit/release/guarded expiry:** READ COMMITTED; lock reservation first, then catalog if ACTIVE, then sample fresh clock_timestamp() after both waits. ACTIVE is commit-eligible iff decisionTime < expiresAt; equality expires. Update counters and state together. Commitment transfers R -> S; release/expiry transfers R -> A. Existing terminal rows never move stock or change identity/price/deadline. An expiry conflict returns only after the EXPIRED transition and cleanup commit. Commit/release contention serializes on the reservation row. Creation never needs an existing reservation lock while holding catalog, avoiding an opposing application lock order. No transaction spans HTTP.
+
+**Reads/replays:** GET is a local persisted read without allocation or expiry; creation replay does not require catalog access, reprice or renew TTL. All identity/outcome rows are retained without automatic deletion. The internal expireIfDue primitive follows the same locks/time rules; C registers no expiry endpoint/scheduler. Autonomous cleanup remains F. Thus safety holds despite a delayed worker, but idle stock reclamation is not yet an eventual-progress capability.
+
+**Rollback/uncertainty:** SQL failures abort the transaction and propagate out; the implementation does not catch a PostgreSQL constraint error and continue querying an aborted transaction. Expected business decisions use non-exception outcomes. Lost acknowledgements are handled with the same operation identity. No distributed exactly-once or atomicity claim is made.
+
+**Role boundary:** runtime needs CONNECT/USAGE; SELECT on catalog_item/reservation_identity/reservation_request/reservation; INSERT on the three reservation tables; UPDATE only available/reserved/sold columns on catalog_item and state on reservation. No DDL, DELETE, TRUNCATE, initial-stock/payload/price/deadline mutation or cross-database connection. Separate external migrator credentials own Flyway/history. Existing SELECT-only catalog clients remain valid for reads; C commands need the documented narrow grants. Local trusted callers are an assumption, not authentication/authorization.
+
+### Verification map and learning notes
+
+| Required race | Executable evidence |
+|---|---|
+| R1 last unit | lastUnitContentionAcrossIndependentInstances: two observed blocked contenders, one allocation and one retained rejection |
+| R2 duplicate | duplicateAndConflictingIdentityRaces(false): one201/one200, one reservation/identity/allocation; identityContenderWaitsForCommitOrRollback tests committed and rolled-back uncommitted identity |
+| R3 conflict | duplicateAndConflictingIdentityRaces(true): immutable winner and distinct409; purchaseCannotBindTwoReservationIdentities tests purchase uniqueness |
+| R4 commit/release | commitVersusReleaseHasOneTerminalWinner: observed competing locks, one terminal transition and conserved counters |
+| R5 commit/expiry | commitAndExpiryCompeteAfterDeadline plus commitWaitsForStockLockThenUsesFreshDatabaseTime: explicit reservation/catalog waits cross observed DB deadline, expiry wins |
+| R6 release/expiry | releaseAndExpiryCompeteWithoutDoubleRestoration: competing independent transactions wait on reservation; one reclamation |
+| R7 lost reply | lostCommitAcknowledgementReplaysAfterDeadlineWithoutSecondSale: test forwarding server drops HTTP response after durable commit; original-ID replay after deadline returns COMMITTED without another sale |
+| R8 rejection replay | durableRejectionCannotAllocateAfterStockReturns: holder releases, rejected identity remains rejected; unknownSkuAndOverflowAreRetained also covers later catalog changes |
+| R9 rollback | rollbackAfterAllocationErasesIdentityAndStockMovement and rollbackAfterCounterTransitionPreservesActiveReservation: test-only failing triggers force genuine SQL rollback after intermediate writes |
+| R10 multiple instances | The race suite uses two independent Boot contexts/HTTP servers/pools, restricted runtime credentials and independent observer connections sharing real PostgreSQL |
+
+The 49 Inventory baseline cases are retained; B fixtures are updated to move counters atomically with their hypothetical rows, not to bypass constraints. The V1->V2 upgrade test still explicitly targets V2. New V2->V3 tests verify negative/catalog preservation and refusal/rollback of ambiguous snapshots. Actual database termination tests all four routes' sanitized503 behavior. Route inspection checks exactly the catalog route plus four approved reservation handlers. Full JSON Schema/format validation of actual response samples supplements MVC assertions; neither specification validation nor six samples proves exhaustive wire conformance.
+
+Spring JDBC keeps locks and SQL visible without JPA's persistence-context behavior. Flyway applies ordered service-owned SQL once and verifies checksums; subsequent schema changes require another version. Database checks protect every writer and catch partial/drifting accounting that application-only checks miss. Controller -> service -> transactional adapter/repository separates transport from local correctness. Stock GET alone cannot prevent overselling; C's serialized transactional allocation is what prevents competing consumers from claiming the same units. This establishes Inventory-local safety only: no Payment/Saga/recovery behavior follows from these tests.
+
+### Limits, findings and next checkpoint
+
+Final verification below passed; no observed blocking implementation defect remains. Non-blocking operational limitations: V2 snapshots need reviewed accounting conversion; manual database/role provisioning; trusted callers; TTL30s is configurable/unmeasured; database clock correctness is assumed; CHECK/aggregate cost and sustained-load behavior are unmeasured; tiny TTLs below PostgreSQL timestamp precision are unsuitable. Exact deadline equality is unit-tested; real PostgreSQL tests cross observed deadlines after lock waits rather than claiming a controllable frozen production clock. Tests demonstrate selected schedules, not all executions or formal linearizability proof. The test forwarding proxy demonstrates HTTP acknowledgement loss, not a severed PostgreSQL COMMIT acknowledgement; database commit-loss semantics remain reconciled by stable identity and need later crash/failure evidence.
+
+Deferred: autonomous expiry, process-kill recovery, Payment charge/refund outcomes, Checkout submit/orchestration/evidence/fencing/reconciliation, all cross-service compensation, notifications dispatch, full deployment and sustained-load research. M1.3-D should implement only deterministic synthetic Payment charge/refund execution and its idempotency/uncertainty/transaction tests after explicit authorization. No D work has started. M1.3 remains incomplete.
+
+### Executed verification (2026-10-25)
+
+PowerShell root commands used the existing ignored cache via `$env:MAVEN_USER_HOME='D:\agies\.m2'` and `$env:MAVEN_OPTS='-Dmaven.repo.local=D:/agies/.m2'`. No testing dependencies were overridden. Java21.0.10, Boot4.1.1, Maven3.9.15, PostgreSQL17.11 and Testcontainers2.0.5 are unchanged. Docker Linux Engine29.3.1 was available. Surefire uses UTC; manual JAR uses -Duser.timezone=UTC because the host's Asia/Calcutta alias is rejected by this PostgreSQL/JDBC setup.
+
+| Command/check | Actual result / evidence |
+|---|---|
+| `.\mvnw.cmd -B verify` before modifications | PASS231, 0 failures/errors/skips; logs/m1.3-c-baseline.log |
+| `.\mvnw.cmd -B -pl services/inventory-service -am verify` | PASS125, 0/0/0 before the final four boundary cases/stronger contention gates; logs/m1.3-c-inventory.log |
+| `.\mvnw.cmd -B verify` initial complete implementation run | PASS307, 0/0/0; logs/m1.3-c-reactor.log |
+| `.\mvnw.cmd -B verify` final source/test run | PASS311, 0/0/0, all five reactor projects successful; logs/m1.3-c-final-reactor.log |
+| `.\mvnw.cmd -B -pl services/inventory-service -am '-DskipTests' package` | PASS executable Boot JAR; tests intentionally not executed by this packaging-only command; logs/m1.3-c-package.log |
+| `python logs/verify_inventory_jar.py` | PASS independent executable JAR startup, migrations1/2/3, distinct owner/runtime, reserve/commit/replay/read; counters1/0/1; verification-only process/container cleaned; logs/m1.3-c-jar-verification.log and logs/m1.3-c-jar-startup.log |
+| `.\.tools\openapi-validator\Scripts\python.exe logs/verify_inventory_contracts.py` with openapi_spec_validator.validate on all4 files | PASS OpenAPI3.1, validator0.9.0; jsonschema4.26.0 Draft2020-12 + FormatChecker validates all6 exported actual responses against full referenced Reservation/Problem schema; logs/m1.3-c-contracts.log |
+
+Early development runs found and fixed a genuine multi-unique-index conflict in the retained-rejection helper: ON CONFLICT targeting reservation_id alone could still fail on concurrent purchase_id uniqueness. Arbitration now handles either unique conflict before comparing the committed identity. Two migration-count assertions were corrected to exclude Flyway's schema marker; one Mockito restub was corrected to avoid invoking an existing throwing stub. These initial failures are not represented as passing runs. Final counts below are from current Surefire XML, not estimates.
+
+| Service | Previous cases retained | New C cases | Final tests | Failures | Errors | Skips |
+|---|---:|---:|---:|---:|---:|---:|
+| Checkout | 85 | 0 | 85 | 0 | 0 | 0 |
+| Inventory | 49 | 80 | 129 | 0 | 0 | 0 |
+| Payment | 58 | 0 | 58 | 0 | 0 | 0 |
+| Notification | 39 | 0 | 39 | 0 | 0 | 0 |
+| Total | 231 | 80 | 311 | 0 | 0 | 0 |
+
+Inventory class totals: CatalogController6, CatalogService10, existing InventoryApplication15, FoundationPersistence18; new ReservationController18, ReservationService10, ReservationLifecycle16, ReservationApplication33, ReservationMigration2 and ReservationUnavailable1. Sixteen unit cases cover strict equality/terminal decision rules. Real PostgreSQL cases enforce conservation, replay, conflicts, actual lock overlap, authoritative time, SQL rollback, migration checks and restricted role behavior. Selected response samples and assertions are strong evidence for those cases, not an exhaustive conformance certification.
+
+### Exact changed files
+
+```text
+AGENTS.md
+README.md
+contracts/inventory-v1.json
+docs/ARCHITECTURE.md
+docs/DECISIONS.md
+docs/M1_3_TRANSACTION_DESIGN.md
+docs/PROJECT_SPEC.md
+docs/ROADMAP.md
+services/inventory-service/src/main/java/io/aegis/inventory/InventoryApplication.java
+services/inventory-service/src/main/java/io/aegis/inventory/api/CatalogErrors.java
+services/inventory-service/src/main/java/io/aegis/inventory/api/ReservationController.java
+services/inventory-service/src/main/java/io/aegis/inventory/api/ReservationErrors.java
+services/inventory-service/src/main/java/io/aegis/inventory/api/ReservationRequest.java
+services/inventory-service/src/main/java/io/aegis/inventory/application/InvalidReservationRequest.java
+services/inventory-service/src/main/java/io/aegis/inventory/application/ReservationBusinessException.java
+services/inventory-service/src/main/java/io/aegis/inventory/application/ReservationService.java
+services/inventory-service/src/main/java/io/aegis/inventory/config/ReservationSettings.java
+services/inventory-service/src/main/java/io/aegis/inventory/domain/ReservationDecision.java
+services/inventory-service/src/main/java/io/aegis/inventory/domain/ReservationFailure.java
+services/inventory-service/src/main/java/io/aegis/inventory/domain/ReservationLifecycle.java
+services/inventory-service/src/main/java/io/aegis/inventory/infrastructure/persistence/ReservationRepository.java
+services/inventory-service/src/main/java/io/aegis/inventory/infrastructure/persistence/ReservationTransactions.java
+services/inventory-service/src/main/resources/application.properties
+services/inventory-service/src/main/resources/db/migration/V3__reservation_accounting.sql
+services/inventory-service/src/test/java/io/aegis/inventory/FoundationDatabase.java
+services/inventory-service/src/test/java/io/aegis/inventory/FoundationPersistenceTest.java
+services/inventory-service/src/test/java/io/aegis/inventory/InventoryApplicationTest.java
+services/inventory-service/src/test/java/io/aegis/inventory/ReservationApplicationTest.java
+services/inventory-service/src/test/java/io/aegis/inventory/ReservationMigrationTest.java
+services/inventory-service/src/test/java/io/aegis/inventory/ReservationUnavailableTest.java
+services/inventory-service/src/test/java/io/aegis/inventory/api/ReservationControllerTest.java
+services/inventory-service/src/test/java/io/aegis/inventory/application/ReservationServiceTest.java
+services/inventory-service/src/test/java/io/aegis/inventory/domain/ReservationLifecycleTest.java
+```
+
+### M1.3-C acceptance checklist
+
+- [x] Accepted A/B preserved; C-only authorization and clean starting baseline inspected.
+- [x] Four exact Inventory routes; no public state/schema/error-code changes.
+- [x] Durable positive/negative identity outcomes and purchase uniqueness across instances.
+- [x] Conserved nonnegative counters, authoritative price/checked money and immutable snapshots.
+- [x] Atomic commit/release/lazy expiry with fresh DB time after all waits and terminal replay.
+- [x] Required R1 through R10 scenarios have executed real PostgreSQL evidence, with limitations stated.
+- [x] Rollback, restart, database unavailability, role isolation and migration compatibility verified.
+- [x] All231 baseline cases retained; final311 pass with zero failures/errors/skips.
+- [x] Inventory packaging/independent JAR startup and dedicated contract validation passed.
+- [x] Other-service implementation/V1/V2/build files preserved; no D/later work, Git commit/push/merge or paid infrastructure.
+- [x] Six-phase/25-milestone roadmap retained; docs reflect actual scope and uncertainty.
+- [ ] User acceptance of M1.3-C.
+- [ ] Explicit authorization for M1.3-D; M1.3 remains incomplete.
+
+Final documentation/scope checks passed: all local Markdown links and code fences, trailing whitespace and git diff --check; exactly six phases and25 milestone lines; all Inventory V1/V2 Git-normalized contents and other-service/build/ignore files unchanged; no remote client/scheduler/JVM-lock implementation. The final tree has15 modified tracked files and18 new files, all within documented scope. Logs, verification-only scripts, validators/caches and build artifacts remain ignored. Branch remains feature/transaction-design at cbb5179 with changes uncommitted; no commit, push or merge was performed.

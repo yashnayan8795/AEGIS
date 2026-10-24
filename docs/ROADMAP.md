@@ -1,6 +1,6 @@
 # Aegis roadmap
 
-Status: refined M1.3-A accepted for progression by the user; B contract/persistence foundations implemented and verified, awaiting user review. No workflow execution or later checkpoint authorized. See D-017 in DECISIONS.md for current evidence.
+Status: M1.3-A/B accepted for progression; M1.3-C Inventory lifecycle implemented, verified (311 reactor tests), pending user acceptance. Payment execution, Checkout orchestration and autonomous recovery remain unimplemented and unauthorized. See D-018 in DECISIONS.md for C evidence and limitations.
 
 ## Approved roadmap
 
@@ -85,12 +85,18 @@ Research success does not require positive predictive gains. It requires valid c
 
 Eventual M1.2 acceptance: four independently startable services, Inventory lookup against PostgreSQL, Notification creation and concurrent-safe replay, Checkout/Payment query behavior using test fixtures, successful service-level tests/migrations, and no cross-service database access. No production completed-purchase/payment seed data. Automated PostgreSQL tests use Testcontainers; manual prerequisites are documented, while complete Compose provisioning remains M1.4.
 
-Historical A authorization did not permit implementation. Subsequent B/C/D and then explicit E authorizations permit those checkpoints only; the user subsequently authorized the F audit and accepted M1.2 for M1.3-A design-only progression. Minimal M1.2 schemas exclude refund/recovery tables, reconciliation workers, and reservation state machines. Future M1.3 endpoints are contract-only reservations.
+Historical A authorization did not permit implementation. Subsequent B/C/D and then explicit E authorizations permit those checkpoints only; the user subsequently authorized the F audit and accepted M1.2 for M1.3-A design-only progression. Minimal M1.2 schemas exclude refund/recovery tables, reconciliation workers, and reservation state machines. At M1.2 all future M1.3 endpoints were contract-only reservations; C now implements the four Inventory reservation operations only.
 
-## Proposed M1.3 subdivisions (pending approval)
+## M1.3 subdivisions and authorization
 
-The [design proposal](M1_3_TRANSACTION_DESIGN.md) suggests A design; B reviewed contracts/prerequisites; C Inventory; D Payment/refunds; E Checkout durable progression; F recovery/dispatch; G correctness audit. These are subdivisions of existing M1.3, not additional milestones or authorization to implement them. B foundations are now explicitly authorized; C and later need separate authorization. Payment timestamp hardening, contract-delta review, recovery policy and explicit next-checkpoint approval remain gates.
+The [design proposal](M1_3_TRANSACTION_DESIGN.md) suggests A design; B reviewed contracts/prerequisites; C Inventory; D Payment/refunds; E Checkout durable progression; F recovery/dispatch; G correctness audit. These are subdivisions of existing M1.3, not additional milestones or authorization to implement them. A/B are accepted for progression; C alone is now authorized for Inventory lifecycle implementation. D and later need separate authorization. B completed finite Payment timestamps and dedicated specification validation; later execution/recovery still requires its own correctness evidence.
 
 ## M1.3-B actual implementation boundary
 
-B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. Stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery remain unverified future work. C and later require explicit acceptance/authorization. The six phases and 25 milestone names are unchanged.
+B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. At B, stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery were unverified future work. C is now explicitly authorized for Inventory only; see the current C section below. The six phases and 25 milestone names are unchanged.
+
+## M1.3-C Inventory implementation boundary
+
+C adds the four accepted reservation handlers, immutable admission/outcome arbitration, conserved available/reserved/sold balances and local READ COMMITTED lifecycle transactions. PostgreSQL row locks serialize lifecycle decisions; fresh database time after both reservation and catalog waits governs expiry. GET returns persisted state and never cleans up. Commands lazily materialize expiry, committing reclamation before an expiry conflict is returned. No autonomous expiry scheduler exists; eventual idle-stock reclamation remains conditional on commands until F.
+
+V3 preserves V1/V2, initializes accounting from existing catalog balances and backfills retained negative identities. It deliberately refuses pre-existing V2 reservation snapshots because B did not allocate their stock: a reviewed accounting conversion is required, not fabricated history. See D-018 for exact files, tests and limits. This checkpoint does not implement Payment execution, Checkout submission/orchestration, remote coordination or recovery. No M1.3-C acceptance is implied.

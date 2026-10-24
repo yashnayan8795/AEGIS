@@ -90,14 +90,14 @@ class InventoryApplicationTest {
     }
     @ParameterizedTest
     @ValueSource(strings = {
-        "INSERT INTO catalog_item VALUES ('BAD_PRICE',0,'INR',1)",
-        "INSERT INTO catalog_item VALUES ('BAD_PRICE',-1,'INR',1)",
-        "INSERT INTO catalog_item VALUES ('BAD_STOCK',100,'INR',-1)",
-        "INSERT INTO catalog_item VALUES ('BAD_CURRENCY',100,'USD',1)",
-        "INSERT INTO catalog_item VALUES ('lowercase',100,'INR',1)",
-        "INSERT INTO catalog_item VALUES ('AEGIS_ITEM',100,'INR',1)",
-        "INSERT INTO catalog_item VALUES ('NULL_PRICE',NULL,'INR',1)",
-        "INSERT INTO catalog_item VALUES ('NULL_STOCK',100,'INR',NULL)"
+        "INSERT INTO catalog_item(sku,unit_price_minor,currency,available_quantity) VALUES ('BAD_PRICE',0,'INR',1)",
+        "INSERT INTO catalog_item(sku,unit_price_minor,currency,available_quantity) VALUES ('BAD_PRICE',-1,'INR',1)",
+        "INSERT INTO catalog_item(sku,unit_price_minor,currency,available_quantity) VALUES ('BAD_STOCK',100,'INR',-1)",
+        "INSERT INTO catalog_item(sku,unit_price_minor,currency,available_quantity) VALUES ('BAD_CURRENCY',100,'USD',1)",
+        "INSERT INTO catalog_item(sku,unit_price_minor,currency,available_quantity) VALUES ('lowercase',100,'INR',1)",
+        "INSERT INTO catalog_item(sku,unit_price_minor,currency,available_quantity) VALUES ('AEGIS_ITEM',100,'INR',1)",
+        "INSERT INTO catalog_item(sku,unit_price_minor,currency,available_quantity) VALUES ('NULL_PRICE',NULL,'INR',1)",
+        "INSERT INTO catalog_item(sku,unit_price_minor,currency,available_quantity) VALUES ('NULL_STOCK',100,'INR',NULL)"
     })
     void databaseRejectsInvalidRows(String sql) throws Exception {
         try (var connection = owner(); var statement = connection.createStatement()) {
@@ -108,7 +108,7 @@ class InventoryApplicationTest {
     @Test void migrationsApplyAndValidate() {
         flyway.validate();
         assertThat(flyway.info().pending()).isEmpty();
-        assertThat(flyway.info().applied()).hasSize(3); // Two schema versions plus opt-in synthetic fixture.
+        assertThat(flyway.info().applied()).hasSize(4); // Three schema versions plus opt-in synthetic fixture.
     }
     @Test void runtimeCannotWriteOrCreateObjects() throws Exception {
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {

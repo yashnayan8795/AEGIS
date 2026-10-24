@@ -3,7 +3,7 @@
   "info": {
     "title": "Aegis Inventory API",
     "version": "0.1.0",
-    "description": "Aegis authoritative wire contract. M1.2 operations implemented; M1.3 operations reserved and unregistered. Synthetic local trusted environment, no authentication or real provider."
+    "description": "Aegis authoritative wire contract. M1.2 catalog and M1.3-C reservation operations implemented. Other-service M1.3 operations remain reserved. Synthetic local trusted environment, no authentication or real provider."
   },
   "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
   "servers": [
@@ -19,7 +19,7 @@
     },
     {
       "name": "M1.3",
-      "description": "Reserved future workflow contract; implementation prohibited in M1.2."
+      "description": "Inventory reservation operations implemented in M1.3-C; no cross-service workflow execution."
     }
   ],
   "paths": {
@@ -249,7 +249,7 @@
         "summary": "Reserve stock (reserved contract)",
         "description": "M1.3 only. Resolve the stable identity first: identical purchaseId/sku/quantity returns the existing reservation, including terminal state and original price/deadline, without reallocation or renewed TTL. Conflicting payload or another reservation ID for that purchase returns a distinct 409 code. For a new reservation, obtain authoritative catalog price, perform checked positive int64 multiplication, then atomically allocate stock and persist the result. Overflow returns 400 MONETARY_OVERFLOW with no stock/reservation side effect. Unknown SKU is 404. No caller amount, expiry, or remote database access. Valid requests rejected with ITEM_NOT_FOUND, MONETARY_OVERFLOW or INSUFFICIENT_STOCK durably retain original identity, purchase binding, canonical payload, status and code before acknowledgement. Identical rejected replays preserve that error despite catalog/stock changes. No stock/reservation side effect permits rejection metadata only. GET may remain 404 if no Reservation exists. Retain identity protection without automatic deletion.",
         "x-aegis-milestone": "M1.3",
-        "x-aegis-implementation-status": "not-implemented",
+        "x-aegis-implementation-status": "implemented",
         "tags": [
           "M1.3"
         ],
@@ -637,7 +637,7 @@
         "summary": "Get reservation (reserved contract)",
         "description": "",
         "x-aegis-milestone": "M1.3",
-        "x-aegis-implementation-status": "not-implemented",
+        "x-aegis-implementation-status": "implemented",
         "tags": [
           "M1.3"
         ],
@@ -861,7 +861,7 @@
         "summary": "Commit reservation (reserved contract)",
         "description": "M1.3 only. COMMITTED replay is 200 even after expiresAt and never moves stock again. RELEASED returns 409 RESERVATION_RELEASED. EXPIRED or ACTIVE at/after authoritative expiresAt returns 409 RESERVATION_EXPIRED and cannot commit. ACTIVE can transition only at a serialized decision point with fresh database time strictly before expiresAt, after any contention wait. At exact equality expiry wins; terminal states never change. Detailed locking/expiry materialization is deferred. Any materialized EXPIRED stock cleanup commits before the 409 acknowledgement; exception handling must not roll it back.",
         "x-aegis-milestone": "M1.3",
-        "x-aegis-implementation-status": "not-implemented",
+        "x-aegis-implementation-status": "implemented",
         "tags": [
           "M1.3"
         ],
@@ -1141,7 +1141,7 @@
         "summary": "Release reservation (reserved contract)",
         "description": "M1.3 only. Release ACTIVE before expiry to RELEASED once; at/after expiry return EXPIRED after establishing cleanup. Existing RELEASED or EXPIRED replays return 200 unchanged; COMMITTED returns 409 RESERVATION_COMMITTED. Never move stock twice or change terminal state. Detailed atomic transition algorithm is M1.3. Stock cleanup commits before acknowledgement.",
         "x-aegis-milestone": "M1.3",
-        "x-aegis-implementation-status": "not-implemented",
+        "x-aegis-implementation-status": "implemented",
         "tags": [
           "M1.3"
         ],

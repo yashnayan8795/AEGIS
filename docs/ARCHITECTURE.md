@@ -1,6 +1,6 @@
 # Aegis architecture
 
-Status: refined M1.3-A accepted for progression by the user; B contract/persistence foundations implemented and verified, awaiting user review. No workflow execution or later checkpoint authorized. See D-017 in DECISIONS.md for current evidence.
+Status: M1.3-A/B accepted for progression; M1.3-C Inventory lifecycle implemented, verified (311 reactor tests), pending user acceptance. Payment execution, Checkout orchestration and autonomous recovery remain unimplemented and unauthorized. See D-018 in DECISIONS.md for C evidence and limitations.
 
 ## 1. Boundaries and ownership
 
@@ -178,7 +178,7 @@ Deferred: deadline/retry budgets, exact persistence/transition algorithms, manua
 
 ## 10. M1.2 contract scope and implementation boundary
 
-OpenAPI 3.1.0 JSON documents: [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), [Notification](../contracts/notification-v1.json). Each operation identifies its milestone; not-implemented metadata is the unchanged contract-review snapshot, not a current deployment inventory. JSON is an OpenAPI serialization; no YAML parser or Java code generator is required for preparation. There is no shared implementation module.
+OpenAPI 3.1.0 JSON documents: [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), [Notification](../contracts/notification-v1.json). Each operation identifies its milestone; implementation-status metadata identifies current handlers; design diagrams include later, unimplemented protocol steps. JSON is an OpenAPI serialization; no YAML parser or Java code generator is required for preparation. There is no shared implementation module.
 
 | Service | M1.2 endpoint scope | Reserved M1.3 endpoints |
 |---|---|---|
@@ -187,7 +187,7 @@ OpenAPI 3.1.0 JSON documents: [Checkout](../contracts/checkout-v1.json), [Invent
 | Payment | GET `/api/v1/payments/{paymentId}` | PUT `/api/v1/payments/{paymentId}`; PUT/GET refund subresource |
 | Notification | POST `/api/v1/notifications`; GET `/api/v1/notifications/{notificationId}` | Checkout delivery intent/worker, not another receiver endpoint |
 
-M1.3 routes are contract reservations only; do not register stub handlers in M1.2. Optional advisory endpoints remain deferred. Catalog lookup returns a stock snapshot, never a promise of allocation. All business paths use `/api/v1`; resource IDs are UUIDs; monetary values use checked integer minor-unit arithmetic and INR. OpenAPI descriptions specify relational rules that cannot be fully captured by individual property schemas. Unknown request fields are rejected. RFC 9457-style Problem Details use `application/problem+json`, with Aegis `code` and optional `violations`; HTTP status and body status must agree. Do not leak internals.
+At M1.2, M1.3 routes were contract reservations only, with no stub handlers. M1.3-C now implements the four Inventory reservation operations; Checkout/Payment mutations remain unimplemented. Optional advisory endpoints remain deferred. Catalog lookup returns a stock snapshot, never a promise of allocation. All business paths use `/api/v1`; resource IDs are UUIDs; monetary values use checked integer minor-unit arithmetic and INR. OpenAPI descriptions specify relational rules that cannot be fully captured by individual property schemas. Unknown request fields are rejected. RFC 9457-style Problem Details use `application/problem+json`, with Aegis `code` and optional `violations`; HTTP status and body status must agree. Do not leak internals.
 
 ### Notification idempotency: approved M1.2 exception
 
@@ -275,7 +275,7 @@ Exact transaction/locking SQL, transition linearization implementation, reservat
 
 ## 13. Inventory C implementation
 
-The catalog endpoint follows controller -> CatalogService -> CatalogRepository -> service-local PostgreSQL. JDBC uses a named SKU parameter. The service validates the exact contract SKU pattern before database access; controller maps the immutable item to the five response fields and a UTC read-attempt timestamp. Advice scoped to the catalog controller emits sanitized Problem Details for invalid SKU, missing item, unavailable storage, and unexpected failure. No reservation handlers are registered.
+The catalog endpoint follows controller -> CatalogService -> CatalogRepository -> service-local PostgreSQL. JDBC uses a named SKU parameter. The service validates the exact contract SKU pattern before database access; controller maps the immutable item to the five response fields and a UTC read-attempt timestamp. Advice scoped to the catalog controller emits sanitized Problem Details for invalid SKU, missing item, unavailable storage, and unexpected failure. At M1.2-C no reservation handlers were registered; M1.3-C adds them as described below.
 
 V1 creates only catalog_item with primary-key/format SKU checks, positive bigint price, explicit INR, and nonnegative bigint available_quantity. Store availability directly in this read-only milestone: no reservation/accounting fields exist from which to derive it. M1.3 will evolve accounting and introduce atomic guarded allocation and conservation tests; a stock read alone cannot prevent overselling. Do not mistake CHECK (available_quantity >= 0) for an allocation protocol.
 
@@ -325,8 +325,14 @@ Tests compare all 400 state/step/flag/independent price-presence combinations wi
 
 ## 16. M1.3-A proposed correctness protocol
 
-[The detailed proposal](M1_3_TRANSACTION_DESIGN.md) evaluates ordering, maps invariants to tests, specifies state/evidence transitions and covers eighteen failure cases. Proposed choices include retained negative reservation outcomes, late issued-charge reconciliation, no opposing release/refund while commit may win, explicit Inventory locks/fresh DB time, and Checkout revision/generation fencing. The refined mechanisms/deltas are accepted for B foundations, except deferred CD-2. B adds new V2 foundation schemas and accepted contract clarifications; M1.2 routes retain behavior. Allocation, outcome execution and workflow/recovery remain later checkpoints.
+[The detailed proposal](M1_3_TRANSACTION_DESIGN.md) evaluates ordering, maps invariants to tests, specifies state/evidence transitions and covers eighteen failure cases. Proposed choices include retained negative reservation outcomes, late issued-charge reconciliation, no opposing release/refund while commit may win, explicit Inventory locks/fresh DB time, and Checkout revision/generation fencing. The refined mechanisms/deltas are accepted for B foundations, except deferred CD-2. B adds new V2 foundation schemas and accepted contract clarifications; M1.2 routes retain behavior. At B, allocation, outcome execution and workflow/recovery were later checkpoints; C now adds Inventory allocation/lifecycle only.
 
 ## M1.3-B actual implementation boundary
 
-B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. Stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery remain unverified future work. C and later require explicit acceptance/authorization. The six phases and 25 milestone names are unchanged.
+B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. At B, stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery were unverified future work. C is now explicitly authorized for Inventory only; see the current C section below. The six phases and 25 milestone names are unchanged.
+
+## M1.3-C Inventory implementation boundary
+
+C adds the four accepted reservation handlers, immutable admission/outcome arbitration, conserved available/reserved/sold balances and local READ COMMITTED lifecycle transactions. PostgreSQL row locks serialize lifecycle decisions; fresh database time after both reservation and catalog waits governs expiry. GET returns persisted state and never cleans up. Commands lazily materialize expiry, committing reclamation before an expiry conflict is returned. No autonomous expiry scheduler exists; eventual idle-stock reclamation remains conditional on commands until F.
+
+V3 preserves V1/V2, initializes accounting from existing catalog balances and backfills retained negative identities. It deliberately refuses pre-existing V2 reservation snapshots because B did not allocate their stock: a reviewed accounting conversion is required, not fabricated history. See D-018 for exact files, tests and limits. This checkpoint does not implement Payment execution, Checkout submission/orchestration, remote coordination or recovery. No M1.3-C acceptance is implied.

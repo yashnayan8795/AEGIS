@@ -12,7 +12,7 @@ final class FoundationDatabase {
    s.execute("CREATE ROLE foundation_writer LOGIN PASSWORD 'test-only-password'");
    s.execute("REVOKE ALL ON DATABASE aegis_inventory FROM PUBLIC");s.execute("GRANT CONNECT ON DATABASE aegis_inventory TO foundation_writer");
    s.execute("REVOKE ALL ON SCHEMA public FROM PUBLIC");s.execute("GRANT USAGE ON SCHEMA public TO foundation_writer");
-   s.execute("GRANT SELECT,INSERT,UPDATE ON TABLE catalog_item,reservation_request,reservation TO foundation_writer");
+   s.execute("GRANT SELECT,INSERT,UPDATE ON TABLE catalog_item,reservation_request,reservation,reservation_identity TO foundation_writer");
    s.execute("CREATE DATABASE other_service");s.execute("REVOKE ALL ON DATABASE other_service FROM PUBLIC");
   }
   p.add("spring.datasource.url",DB::getJdbcUrl);p.add("spring.datasource.username",()->"foundation_writer");p.add("spring.datasource.password",()->"test-only-password");

@@ -6,7 +6,7 @@ Aegis is a research/learning project. The synthetic checkout environment is a te
 
 ## Current state
 
-M1.1 and M1.2 are accepted for progression by the user (2026-10-24). E is integrated on main at `7fe74c1`; the 2026-10-21 F audit passed 166 tests. The refined M1.3-A design is accepted for progression. M1.3-B persistence foundations are implemented and verified, awaiting user review; no distributed workflow execution exists. See [transaction design](docs/M1_3_TRANSACTION_DESIGN.md) and [decision record](docs/DECISIONS.md).
+M1.1 and M1.2 are accepted for progression by the user (2026-10-24). E is integrated on main at `7fe74c1`; the 2026-10-21 F audit passed 166 tests. The refined M1.3-A design is accepted for progression. M1.3-B is accepted for progression. M1.3-C Inventory reservation lifecycle is implemented, verified (311 reactor tests), pending user acceptance; no distributed workflow execution exists. See [transaction design](docs/M1_3_TRANSACTION_DESIGN.md) and [decision record](docs/DECISIONS.md).
 
 Implemented endpoints:
 
@@ -14,11 +14,15 @@ Implemented endpoints:
 |---|---|---|
 | Checkout | GET `/api/v1/purchases/{purchaseId}` | Read durable local purchase snapshot; no workflow advancement |
 | Inventory | GET `/api/v1/items/{sku}` | Authoritative catalog/stock snapshot |
+| Inventory | PUT `/api/v1/reservations/{reservationId}` | 201 new allocation; 200 identical replay; retained negative outcomes/conflicts |
+| Inventory | GET `/api/v1/reservations/{reservationId}` | Persisted reservation snapshot; no expiry mutation |
+| Inventory | PUT `/api/v1/reservations/{reservationId}/commit` | Atomic ACTIVE-to-COMMITTED before DB deadline; idempotent replay |
+| Inventory | PUT `/api/v1/reservations/{reservationId}/release` | Atomic release/expiry reclamation; idempotent replay |
 | Payment Simulator | GET `/api/v1/payments/{paymentId}` | Read stored PENDING/SUCCEEDED/DECLINED outcome |
 | Notification | POST `/api/v1/notifications` | 201 new; 200 identical replay; 409 conflicting identity |
 | Notification | GET `/api/v1/notifications/{notificationId}` | Read synthetic stored receipt |
 
-No charge/refund, reservation, orchestration, resilience policy, delivery worker, telemetry stack, or Compose behavior is implemented. STORED means a local receipt, never actual email delivery or authoritative purchase confirmation.
+No charge/refund execution, orchestration, autonomous expiry/recovery, resilience policy, delivery worker, telemetry stack, or Compose behavior is implemented. STORED means a local receipt, never actual email delivery or authoritative purchase confirmation.
 
 ## Build and test
 
@@ -38,7 +42,9 @@ Build artifacts are under `services/<module>/target/<module>-0.1.0-SNAPSHOT.jar`
 
 ## Manual Inventory development
 
-Provision `aegis_inventory` outside the application, with separate migrator/owner and runtime roles. Revoke PUBLIC database connection and schema-create privileges as appropriate; grant the runtime role CONNECT, schema USAGE and SELECT on `catalog_item` (and owner default SELECT privileges for future tables if desired). It must not own objects, write stock, create schemas, or connect to another service database. Credentials are supplied via `DB_URL`, `DB_USER`, `DB_PASSWORD`, `MIGRATION_USER`, and `MIGRATION_PASSWORD`; never commit secrets. Flyway migrates Inventory only, not databases or roles.
+Provision `aegis_inventory` outside the application, with separate migrator/owner and runtime roles. Revoke PUBLIC database connection and schema-create privileges; runtime needs CONNECT, schema USAGE, SELECT on catalog_item/reservation_identity/reservation_request/reservation, INSERT on the three reservation tables, UPDATE(available_quantity,reserved_quantity,sold_quantity) on catalog_item and UPDATE(state) on reservation. Do not grant DELETE, TRUNCATE, DDL, object ownership, payload/price/deadline updates or cross-database access. Grants are external provisioning; Flyway owns Inventory schema evolution only. Credentials use `DB_URL`, `DB_USER`, `DB_PASSWORD`, `MIGRATION_USER`, `MIGRATION_PASSWORD`; never commit secrets. The old M1.2 SELECT-only role supports catalog reads but cannot execute C commands.
+
+`INVENTORY_RESERVATION_TTL` defaults to `30s`, must be positive, and applies only to new reservations. It is a configurable operational assumption, not a completion guarantee. Database time is authoritative. Available stock is stored explicitly with reserved/sold/initial counters and conservation constraints. No restock/reset API exists. V3 refuses existing B reservation snapshots without a reviewed accounting conversion; do not remove the guard or alter applied migrations. Catalog rows and retained negative outcomes upgrade normally.
 
 ```powershell
 java '-Duser.timezone=UTC' -jar services/inventory-service/target/inventory-service-0.1.0-SNAPSHOT.jar --spring.profiles.active=local
@@ -59,7 +65,7 @@ One PostgreSQL server with separate service databases/roles is the intended topo
 - [Contributor instructions](AGENTS.md)
 - OpenAPI: [Checkout](contracts/checkout-v1.json), [Inventory](contracts/inventory-v1.json), [Payment](contracts/payment-v1.json), [Notification](contracts/notification-v1.json)
 
-Accepted B contract refinements are applied. M1.2 operation metadata now reports implemented; M1.3 mutation/query reservations remain unregistered. Notification receiver replay (201 new, 200 same, 409 conflict) is implemented in accepted M1.2-D.
+Accepted B contract refinements are applied. M1.2 operation metadata now reports implemented; Inventory reservation operations are now registered in C; Checkout/Payment mutation operations remain reserved. Notification receiver replay (201 new, 200 same, 409 conflict) is implemented in accepted M1.2-D.
 
 ## Local logs
 
@@ -140,20 +146,28 @@ E verification: **62 Checkout tests; 166 full-reactor tests, zero failures/error
 
 The user accepted M1.2 for progression to M1.3-A. The 21 October audit verified 166 tests with zero failures/errors/skips and four independent packaged starts; these are historical results, not a new run for the 24 October documentation work. No substantial foundation redesign was identified. The audit's initial JAR lock came from a stale agent-owned smoke process; it was removed and the reactor rerun passed.
 
-B now hardens Payment timestamps through V2 and runs isolated dedicated OpenAPI validation. Existing five endpoints retain their M1.2 behavior; reserved M1.3 operations are still not registered.
+B now hardens Payment timestamps through V2 and runs isolated dedicated OpenAPI validation. Existing five endpoints retain their M1.2 behavior; C adds only the four Inventory reservation handlers.
 
-[The M1.3-A proposal](docs/M1_3_TRANSACTION_DESIGN.md) covers workflow ordering, safety/liveness, state transitions, durable identities, rejection retention, concurrency, compensation, recovery and proposed contract deltas. The user accepted the refined baseline and authorized B foundations only; C and later remain unauthorized.
+[The M1.3-A proposal](docs/M1_3_TRANSACTION_DESIGN.md) covers workflow ordering, safety/liveness, state transitions, durable identities, rejection retention, concurrency, compensation, recovery and proposed contract deltas. The user accepted the refined baseline, accepted B for progression and authorized C only; D and later remain unauthorized.
 
 ## M1.3-B persistence foundations
 
 Three new service-owned `V2__transaction_foundations.sql` migrations add Checkout key/workflow/intent/observation/notification-intent storage; Inventory request outcomes and reservation snapshots; and Payment finite timestamp guards, immutable policy and refund storage. Applied V1 migrations are untouched. No sample purchases/payments/refunds are inserted on startup.
 
-New internal repositories support canonical replay/conflict, atomic storage admission, mappings and fenced observation writes. These are not registered HTTP mutations. Inventory allocation/conservation/expiry execution, charge/refund outcome execution, orchestration, workers and notification dispatch remain unimplemented. Payment admission persists PENDING metadata; later D execution must resolve under its encompassing local transaction. No success is fabricated by B.
+New internal repositories support canonical replay/conflict, atomic storage admission, mappings and fenced observation writes. These are not registered HTTP mutations. At B, Inventory allocation/conservation/expiry execution was unimplemented; C adds it as described below. Charge/refund outcome execution, orchestration, workers and notification dispatch remain unimplemented. Payment admission persists PENDING metadata; later D execution must resolve under its encompassing local transaction. No success is fabricated by B.
 
-Manual runtime privileges stay minimal: existing reads need their existing SELECT grants. Only when internal B writer primitives are deliberately used, grant Checkout SELECT/INSERT on purchase, purchase_key, purchase_workflow, workflow_intent and workflow_observation plus UPDATE on purchase_workflow/workflow_observation only; Inventory SELECT/INSERT on reservation_request and SELECT on reservation/catalog for its current repository; Payment SELECT/INSERT on payment/charge_policy/refund plus the reads required by local triggers. Do not grant DELETE/TRUNCATE/DDL, migration-history writes or cross-database access. Tests use broader business-table UPDATE grants specifically to exercise guarded/illegal updates. Migrator ownership remains separate; application migrations create no roles/databases. No complete deployment/provisioning script is introduced.
+Manual runtime privileges stay minimal: existing reads need their existing SELECT grants. Only when internal B writer primitives are deliberately used, grant Checkout SELECT/INSERT on purchase, purchase_key, purchase_workflow, workflow_intent and workflow_observation plus UPDATE on purchase_workflow/workflow_observation only; Inventory now needs the exact C grants in Manual Inventory development above; Payment SELECT/INSERT on payment/charge_policy/refund plus the reads required by local triggers. Do not grant DELETE/TRUNCATE/DDL, migration-history writes or cross-database access. Tests use broader business-table UPDATE grants specifically to exercise guarded/illegal updates. Migrator ownership remains separate; application migrations create no roles/databases. No complete deployment/provisioning script is introduced.
 
-Build/test command remains `.\mvnw.cmd -B verify`. This workspace uses `$env:MAVEN_USER_HOME='D:\agies\.m2'` and `$env:MAVEN_OPTS='-Dmaven.repo.local=D:/agies/.m2'` for its ignored local cache. Testcontainers creates disposable PostgreSQL environments; migration tests now validate V1 plus V2 (Inventory local-profile tests also include its repeatable catalog fixture). Existing query fixtures remain test-only; their cleanup cascades across new service-local foreign keys.
+Build/test command remains `.\mvnw.cmd -B verify`. This workspace uses `$env:MAVEN_USER_HOME='D:\agies\.m2'` and `$env:MAVEN_OPTS='-Dmaven.repo.local=D:/agies/.m2'` for its ignored local cache. Testcontainers creates disposable PostgreSQL environments; migration tests validate service-owned versions (Inventory now V1/V2/V3; its local-profile tests also include the repeatable catalog fixture). Existing query fixtures remain test-only; their cleanup cascades across new service-local foreign keys.
 
 Dedicated contract tool is isolated at `.tools/openapi-validator` (ignored), not an application dependency. `openapi-spec-validator 0.9.0` checks all four OpenAPI3.1 specifications; `jsonschema 4.26.0` checks 25 schema examples. Specification validation does not certify an unimplemented route or prove distributed safety. See D-017 for actual command/test evidence and the changed-file inventory.
 
-B final verification: **231 tests, zero failures/errors/skips** (Checkout85, Inventory49, Payment58, Notification39), including65 new PostgreSQL foundation cases. V1-to-V2 data preservation and invalid legacy timestamp rejection passed. Full reactor and independent changed-service packaging passed; four JARs contain current migrations and no test fixtures. Final log: `logs/m1.3-b-final-verified.log`; contracts: `logs/m1.3-b-final-contracts.log`. B is ready for review, not accepted automatically; no C work has begun.
+B final verification: **231 tests, zero failures/errors/skips** (Checkout85, Inventory49, Payment58, Notification39), including65 new PostgreSQL foundation cases. V1-to-V2 data preservation and invalid legacy timestamp rejection passed. Full reactor and independent changed-service packaging passed; four JARs contain current migrations and no test fixtures. Final log: `logs/m1.3-b-final-verified.log`; contracts: `logs/m1.3-b-final-contracts.log`. B was subsequently accepted for progression by the explicit C authorization. See C evidence below; C acceptance remains pending.
+
+## M1.3-C reservation behavior
+
+Use the four Inventory contracts listed above. New identities bind purchaseId/sku/quantity permanently. Replays preserve the original price, expiration and established outcome; stock/price changes cannot turn a rejected identity into an allocation. Conflicts use RESERVATION_ID_REUSED or PURCHASE_RESERVATION_EXISTS. ACTIVE allocation transfers available to reserved; commit transfers reserved to sold; release/expiry transfers reserved to available exactly once. Terminal states are immutable. A commit at/after the deadline establishes EXPIRED and returns 409 RESERVATION_EXPIRED after cleanup commits; release at/after deadline returns 200 EXPIRED. COMMITTED replay is 200 even after the deadline.
+
+GET may show overdue ACTIVE: reads do not mutate stock. Idle reservations retain reserved stock until a command reclaims them; autonomous cleanup belongs to F. A timeout means the mutation outcome may be unknown: retry the original identity/payload. None of these operations provides cross-service atomicity or authenticates callers. See D-018 in [DECISIONS.md](docs/DECISIONS.md) for verification, limitations and pending acceptance.
+
+Final C verification (2026-10-25): `.\mvnw.cmd -B verify` passed **311 tests, 0 failures, 0 errors, 0 skips**: Checkout85, Inventory129, Payment58, Notification39. All231 previous tests remain, with80 new C cases. Inventory independent packaging and executable-JAR startup with PostgreSQL/narrow runtime grants passed. All four OpenAPI3.1 documents passed openapi-spec-validator0.9.0; six actual Inventory responses passed referenced JSON Schema/format checks with jsonschema4.26.0. Evidence/commands and limitations are in D-018; no D implementation or C acceptance is implied.

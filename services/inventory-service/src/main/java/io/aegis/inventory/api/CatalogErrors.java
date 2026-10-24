@@ -4,6 +4,7 @@ import io.aegis.inventory.application.InvalidSkuException;
 import io.aegis.inventory.application.ItemNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(assignableTypes = CatalogController.class)
+@Order(0)
 public class CatalogErrors {
     @ExceptionHandler(InvalidSkuException.class)
     ProblemDetail invalid(HttpServletRequest request) {

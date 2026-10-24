@@ -1,6 +1,6 @@
 # Aegis project specification
 
-Status: refined M1.3-A accepted for progression by the user; B contract/persistence foundations implemented and verified, awaiting user review. No workflow execution or later checkpoint authorized. See D-017 in DECISIONS.md for current evidence.
+Status: M1.3-A/B accepted for progression; M1.3-C Inventory lifecycle implemented, verified (311 reactor tests), pending user acceptance. Payment execution, Checkout orchestration and autonomous recovery remain unimplemented and unauthorized. See D-018 in DECISIONS.md for C evidence and limitations.
 
 ## 1. Problem and purpose
 
@@ -108,9 +108,9 @@ See [DECISIONS.md](DECISIONS.md) for status and [ROADMAP.md](ROADMAP.md) for aut
 
 ## 9. Accepted M1.2 execution scope
 
-The user accepted M1.2, including integrated E and the F audit, for progression to M1.3-B foundations only. Later execution requires explicit authorization. Contracts live in [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), and [Notification](../contracts/notification-v1.json). Contract labels describe the review snapshot; current implementation status is reported in README.
+The user accepted M1.2, including integrated E and the F audit, for progression; A/B are accepted and C Inventory execution is now explicitly authorized. Other later execution requires explicit authorization. Contracts live in [Checkout](../contracts/checkout-v1.json), [Inventory](../contracts/inventory-v1.json), [Payment](../contracts/payment-v1.json), and [Notification](../contracts/notification-v1.json). Contract labels describe the review snapshot; current implementation status is reported in README.
 
-M1.2 acceptance requires four independently startable applications; Inventory catalog reads against PostgreSQL; Notification creation and idempotent replay under concurrent duplicates; Checkout/Payment query behavior using test fixtures; passing service-level tests and Flyway migrations; and no cross-service database access. Purchase submission, reservation commands, payment/refund execution, recovery, and compensation remain M1.3-reserved contracts. Do not populate production databases with fictional completed purchases/payments.
+M1.2 acceptance requires four independently startable applications; Inventory catalog reads against PostgreSQL; Notification creation and idempotent replay under concurrent duplicates; Checkout/Payment query behavior using test fixtures; passing service-level tests and Flyway migrations; and no cross-service database access. At M1.2, purchase submission, reservation commands, payment/refund execution, recovery and compensation were M1.3-reserved contracts. C now implements only the Inventory reservation operations. Do not populate production databases with fictional completed purchases/payments.
 
 Approved implementation choices: Spring MVC, Spring JDBC, service-owned Flyway SQL, Maven reactor, four independent applications, no shared Java implementation library, OpenAPI 3.x, `/api/v1`, UUID resources, RFC 9457-style Problem Details, Inventory price authority, INR minor units, and Testcontainers PostgreSQL tests. The documented Java 21/Boot baseline remains subject to actual build verification.
 
@@ -119,7 +119,7 @@ M1.2 schemas must not contain refund, recovery, reconciliation, or reservation-s
 
 ## 10. M1.2-D verified scope
 
-Payment GET reads only its database and preserves definitive versus pending state semantics. Notification POST/GET stores a synthetic receipt with PostgreSQL-enforced concurrent idempotency; neither STORED nor a receipt validates a purchase. Two service-owned V1 migrations add only payment and notification_receipt. There are no production payment outcome fixtures. Restricted roles, independent configuration, real PostgreSQL concurrency/outage tests and regression verification passed; see D-013 in DECISIONS. D was subsequently accepted for E progression. M1.3 operations remain unimplemented.
+Payment GET reads only its database and preserves definitive versus pending state semantics. Notification POST/GET stores a synthetic receipt with PostgreSQL-enforced concurrent idempotency; neither STORED nor a receipt validates a purchase. Two service-owned V1 migrations add only payment and notification_receipt. There are no production payment outcome fixtures. Restricted roles, independent configuration, real PostgreSQL concurrency/outage tests and regression verification passed; see D-013 in DECISIONS. D was subsequently accepted for E progression. Payment/Checkout execution remains unimplemented; C adds Inventory reservation operations only.
 
 ## 11. M1.2-E implementation scope
 
@@ -131,4 +131,10 @@ The [transaction design](M1_3_TRANSACTION_DESIGN.md) proposes explicit Saga inva
 
 ## M1.3-B actual implementation boundary
 
-B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. Stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery remain unverified future work. C and later require explicit acceptance/authorization. The six phases and 25 milestone names are unchanged.
+B stores identity, immutable payload/policy, snapshots, unresolved obligations and claim metadata using service-owned V2 migrations/JDBC repositories. No migration seeds transaction outcomes and no V1 was rewritten. Tests verify storage constraints/uniqueness/rollback/fencing, not an executed Saga. At B, stock conservation/expiry linearization, remote evidence validation, finalization, charge/refund execution and crash recovery were unverified future work. C is now explicitly authorized for Inventory only; see the current C section below. The six phases and 25 milestone names are unchanged.
+
+## M1.3-C Inventory implementation boundary
+
+C adds the four accepted reservation handlers, immutable admission/outcome arbitration, conserved available/reserved/sold balances and local READ COMMITTED lifecycle transactions. PostgreSQL row locks serialize lifecycle decisions; fresh database time after both reservation and catalog waits governs expiry. GET returns persisted state and never cleans up. Commands lazily materialize expiry, committing reclamation before an expiry conflict is returned. No autonomous expiry scheduler exists; eventual idle-stock reclamation remains conditional on commands until F.
+
+V3 preserves V1/V2, initializes accounting from existing catalog balances and backfills retained negative identities. It deliberately refuses pre-existing V2 reservation snapshots because B did not allocate their stock: a reviewed accounting conversion is required, not fabricated history. See D-018 for exact files, tests and limits. This checkpoint does not implement Payment execution, Checkout submission/orchestration, remote coordination or recovery. No M1.3-C acceptance is implied.
